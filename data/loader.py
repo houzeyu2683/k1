@@ -8,11 +8,19 @@ from torch.utils.data import DataLoader
 from torch.nn.utils import rnn
 from torchvision import transforms as kit
 from functools import partial
+import json
 
 class constant:
 
     version = '1.0.0'
+    vocabulary = {'article':"resource/preprocess/json/article.json"}
     pass
+
+class vocabulary:
+
+    with open(constant.vocabulary['article']) as paper: article = json.load(paper)
+    pass
+
 
 class loader:
 
@@ -55,80 +63,119 @@ class loader:
 
         return
 
-    def collect(self, data, mode):
+    def collect(self, iteration, mode):
         
         collection = dict()
-        collection['batch size'] = len(data)
+        collection['batch size'] = len(iteration)
         collection['mode'] = mode
-        for item in data:
+        collection['item'] = []
+        collection['sequence'] = []
+        collection['variable'] = []
+        for item in iteration:
             
-            engine = process(item=item, vocabulary=self.vocabulary, mode=mode)
-            batch['item'] += [engine.item]
-            batch['image'] += [engine.image()]
-            batch['text'] += [engine.text()]
+            engine = process(item=item, mode=mode)
+            collection['item'] += [engine.item]
+            collection['sequence'] += [engine.sequence()]
+            collection['variable'] += [engine.variable()]
             pass
 
-        batch['item']   = pandas.concat(batch['item'],axis=1).transpose()
-        batch['image']  = torch.stack(batch['image'], 0)
-        batch['text']   = rnn.pad_sequence(batch['text'], batch_first=False, padding_value=self.vocabulary.index['<padding>'])
-        batch['size']   = len(group)
-        batch['length'] = len(batch['text'])
-        return(batch)
+        collection['item']     = pandas.concat(collection['item'],axis=1).transpose()
+        collection['variable']  = torch.stack(collection['variable'], 0)
+        # batch['image']  = torch.stack(batch['image'], 0)
+        collection['sequence'] = rnn.pad_sequence(collection['sequence'], batch_first=False, padding_value=0)
+        return(collection)
     
     pass
 
 class process:
 
-    def __init__(self, item=None, mode='train'):
+    def __init__(self, item=None, mode=None):
 
         self.item = item
         self.mode = mode
         pass
+    
+    def sequence(self):
 
-    def user(self):
-
+        length = 12
+        token = [vocabulary.article[k] for k in self.item['sequence'].split()]
+        difference = len(token)-length
+        if(difference<0): token = token + ([0]*(-difference))
+        token  = token[0:length]
+        output = torch.tensor(token, dtype=torch.int64)
+        return(output)
         
-        self.item['<column>'].type(torch.float32)
-        return
- 
-    def image(self):
+    def variable(self):
 
-        path = os.path.join(constant['image folder'], self.item['image'])
-        picture = PIL.Image.open(path).convert("RGB")
-        picture = zoom(picture, 256)
-        if(self.mode=='train'):
-            
-            blueprint = [
-                kit.RandomHorizontalFlip(p=0.5),
-                kit.RandomRotation((-45, +45)),
-                # kit.ColorJitter(brightness=(0,1), contrast=(0,1),saturation=(0,1), hue=(-0.5, 0.5)),
-                kit.RandomCrop(constant['image size']),
-                kit.ToTensor(),
-            ]
-            convert = kit.Compose(blueprint)
-            picture = convert(picture)
-            pass
-
-        else:
-            
-            blueprint = [
-                kit.CenterCrop(constant['image size']),
-                kit.ToTensor(),
-            ]
-            convert = kit.Compose(blueprint)
-            picture = convert(picture)                    
-            pass
-            
-        picture = picture.type(torch.float32)
-        return(picture)
-
-    def text(self):
-
-        index = self.vocabulary.encode(self.item['text'])
-        index = torch.tensor(index, dtype=torch.int64)
-        return(index)
+        vector = self.item[["FN", "Active", "club_member_status", "fashion_news_frequency", "age", "postal_code"]]
+        output = torch.tensor(vector).type(torch.FloatTensor)
+        return(output)
 
     pass
+
+
+
+
+# item = dataset.train.__getitem__(2)
+# item = item[["FN", "Active", "club_member_status", "fashion_news_frequency", "age", "postal_code"]]
+# output = torch.tensor(vector, dtype=torch.float64)
+# import torch
+# [k for k in x.split()]
+# [
+# vocabulary['article']
+# table.article
+# class process:
+
+#     def __init__(self, item=None, mode='train'):
+
+#         self.item = item
+#         self.mode = mode
+#         pass
+
+#     def user(self):
+
+        
+#         self.item['<column>'].type(torch.float32)
+#         return
+ 
+#     def image(self):
+
+#         path = os.path.join(constant['image folder'], self.item['image'])
+#         picture = PIL.Image.open(path).convert("RGB")
+#         picture = zoom(picture, 256)
+#         if(self.mode=='train'):
+            
+#             blueprint = [
+#                 kit.RandomHorizontalFlip(p=0.5),
+#                 kit.RandomRotation((-45, +45)),
+#                 # kit.ColorJitter(brightness=(0,1), contrast=(0,1),saturation=(0,1), hue=(-0.5, 0.5)),
+#                 kit.RandomCrop(constant['image size']),
+#                 kit.ToTensor(),
+#             ]
+#             convert = kit.Compose(blueprint)
+#             picture = convert(picture)
+#             pass
+
+#         else:
+            
+#             blueprint = [
+#                 kit.CenterCrop(constant['image size']),
+#                 kit.ToTensor(),
+#             ]
+#             convert = kit.Compose(blueprint)
+#             picture = convert(picture)                    
+#             pass
+            
+#         picture = picture.type(torch.float32)
+#         return(picture)
+
+#     def text(self):
+
+#         index = self.vocabulary.encode(self.item['text'])
+#         index = torch.tensor(index, dtype=torch.int64)
+#         return(index)
+
+#     pass
 
 # '''
 # 根據圖片最短邊進行縮放，使得最短邊縮放後超過一定的長度。

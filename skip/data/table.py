@@ -13,7 +13,7 @@ class table:
             start = time.time()
             self.transaction = pandas.read_csv(os.path.join(root, source, 'csv', "transactions_train.csv"), dtype={'article_id':str})
             self.submission = pandas.read_csv(os.path.join(root, source, 'csv', "sample_submission.csv"))
-            self.article = pandas.read_csv(os.path.join(root, source, 'csv', "articles.csv"), dtype={'article_id':str})
+            self.article = pandas.read_csv(os.path.join(root, source, 'csv', "articles.csv"))
             self.customer = pandas.read_csv(os.path.join(root, source, 'csv', "customers.csv"))
             end = time.time()
             print('elapsed {} time'.format(end-start))
