@@ -8,4 +8,4 @@ import sklearn
 import time
 import json
 from sklearn import preprocessing
-
+import functools 

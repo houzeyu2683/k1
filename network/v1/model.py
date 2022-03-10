@@ -24,7 +24,8 @@ class variable(nn.Module):
 
     def forward(self, x='(batch size, feature tensor)'):
 
-        v = [self.layer['default'](x[:,:-1]), self.layer['postal'](torch.unsqueeze(x[:, -1].type(torch.LongTensor), 0)).squeeze()]
+        postal = torch.unsqueeze(x[:, -1].type(torch.cuda.LongTensor), 0) if(x[:, -1].is_cuda) else torch.unsqueeze(x[:, -1].type(torch.LongTensor), 0)
+        v = [self.layer['default'](x[:,:-1]), self.layer['postal'](postal).squeeze()]
         v = torch.cat(v, dim=1)
         y = self.layer['connection'](v)
         return(y)
