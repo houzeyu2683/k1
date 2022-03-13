@@ -13,36 +13,51 @@ class table:
 
             start = time.time()
 
-            ##  
+            ##  提前處理 transaction 資料表.
             self.transaction = pandas.read_csv(os.path.join(root, source, 'csv', "transactions_train.csv"), dtype={'article_id':str})
             encoder = preprocessing.LabelEncoder()
             encoder.fit(self.transaction['sales_channel_id'].unique())
             self.transaction['sales_channel_id'] = encoder.transform(self.transaction["sales_channel_id"])
 
-            ##
+            ##  提前處理 submission 資料表.
             self.submission = pandas.read_csv(os.path.join(root, source, 'csv', "sample_submission.csv"))
             
-            ##
+            ##  提前處理 article 資料表, 編碼都保留 <start> 以及 <padding> 給 0 跟 1 來使用. 
             self.article = pandas.read_csv(os.path.join(root, source, 'csv', "articles.csv"), dtype={'article_id':str})
             encoder = preprocessing.LabelEncoder()
             encoder.fit(self.article['article_id'].unique())
-            self.article['target'] = encoder.transform(self.article["article_id"])
-            self.article['detail_desc'] = self.article['detail_desc'].fillna("detail_desc unknown")
+            self.article['article_code'] = encoder.transform(self.article["article_id"]) + 2
+            self.article['article_code'] = self.article['article_code'].astype(str)
+            self.article['detail_desc'] = self.article['detail_desc'].fillna("unknown")
             loop = [
                 "product_code", "prod_name", "product_type_no", "product_type_name", "product_group_name", 
-                "graphical_appearance_no", "graphical_appearance_name", "colour_group_code", "colour_group_name", "perceived_colour_value_id", 
-                "perceived_colour_value_name", "perceived_colour_master_id", "perceived_colour_master_name", 
-                "department_no", "department_name", "index_code", "index_name", "index_group_no", "index_group_name", 
-                "section_no", "section_name", "garment_group_no", "garment_group_name", "detail_desc"
+                "graphical_appearance_no", "graphical_appearance_name", 
+                "colour_group_code", "colour_group_name", 
+                "perceived_colour_value_id", "perceived_colour_value_name", "perceived_colour_master_id", "perceived_colour_master_name", 
+                "department_no", "department_name", 
+                "index_code", "index_name", "index_group_no", "index_group_name", 
+                "section_no", "section_name", 
+                "garment_group_no", "garment_group_name", 
+                "detail_desc"
             ]
             for i in loop:
 
                 encoder = preprocessing.LabelEncoder()
                 encoder.fit(self.article[i].unique())
-                self.article[i] = encoder.transform(self.article[i])
+                self.article[i] = encoder.transform(self.article[i]) + 2
                 pass
             
             ##
+            x = {i:[0] for i in loop}
+            x.update({"article_id": ["<padding>"], "article_code": ["0"]})
+            x = pandas.DataFrame(x)
+            self.article  = pandas.concat([self.article, x]).copy()
+            x = {i:[1] for i in loop}
+            x.update({"article_id": ["<start>"], "article_code": ["1"]})
+            x = pandas.DataFrame(x)
+            self.article  = pandas.concat([self.article, x]).copy()
+
+            ##  提前處理 customer 資料表.
             self.customer = pandas.read_csv(os.path.join(root, source, 'csv', "customers.csv"))
             self.customer['FN'] = self.customer['FN'].fillna(0.0)
             self.customer['Active'] = self.customer['Active'].fillna(0.0)
@@ -55,7 +70,7 @@ class table:
 
                 encoder = preprocessing.LabelEncoder()
                 encoder.fit(self.customer[i].unique())
-                self.customer[i] = encoder.transform(self.customer[i])
+                self.customer[i] = encoder.transform(self.customer[i]) 
                 pass
 
             end = time.time()

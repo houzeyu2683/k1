@@ -1,6 +1,11 @@
 
 import pandas
 import functools
+import numpy
+
+x = pandas.DataFrame({"id":['a', 'b', 'c'], '1':[1,2,3], '2':[4,5,6]})
+x.iloc[:,1:] = x.iloc[:,1:].apply(lambda x: x/x.max(), axis=0)
+x
 
 class cross:
 
@@ -15,6 +20,7 @@ class cross:
         item = item.pivot_table(values=numeric, index=key, columns=category, aggfunc='first').reset_index()
         item = item.fillna(0)
         item.columns = [key] + ["{}_{}_{}".format(category, i, method) for i in item.columns[1:]]
+        item.iloc[:,1:] = item.iloc[:,1:].apply(lambda x: x/x.max(), axis=0)
         group = group + [item]
         pass
 
@@ -23,6 +29,7 @@ class cross:
         item = item.pivot_table(values=numeric, index=key, columns=category, aggfunc='first').reset_index()
         item = item.fillna(0)
         item.columns = [key] + ["{}_{}_{}".format(category, i, method) for i in item.columns[1:]]
+        item.iloc[:,1:] = item.iloc[:,1:].apply(lambda x: x/x.max(), axis=0)
         group = group + [item]
         pass
 
@@ -31,6 +38,7 @@ class cross:
         item = item.pivot_table(values=numeric, index=key, columns=category, aggfunc='first').reset_index()
         item = item.fillna(0)
         item.columns = [key] + ["{}_{}_{}".format(category, i, method) for i in item.columns[1:]]
+        item.iloc[:,1:] = item.iloc[:,1:].apply(lambda x: x/x.max(), axis=0)
         group = group + [item]
         pass
 
@@ -47,6 +55,7 @@ class cross:
         item = item.pivot_table(values=numeric, index=key, columns=category, aggfunc='first').reset_index()
         item = item.fillna(0)
         item.columns = [key] + ["{}_{}_{}".format(category, i, method) for i in item.columns[1:]]
+        item.iloc[:,1:] = item.iloc[:,1:].apply(lambda x: x/x.max(), axis=0)
         group = group + [item]
         pass
 
