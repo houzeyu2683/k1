@@ -11,6 +11,8 @@ cache = data.cache(storage='resource/preprocess')
 table = data.table(source='kaggle')
 
 ##
+table.article['article_code'] = table.article['article_code'].astype(int)
+table.article = table.article.sort_values(['article_code'])
 cache.save(what=table.article, file='article.csv', format='csv')
 
 ##  商品資訊資料表與交易紀錄表進行合併, 擴充交易資料表.
@@ -69,4 +71,4 @@ cache.save(what=cache.f1, file='f1.csv', format='csv')
 
 
 
-
+# list(cache.f1.keys())

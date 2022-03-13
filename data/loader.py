@@ -13,19 +13,7 @@ import json
 class constant:
 
     version = '1.0.1'
-    # vocabulary = {'article':"resource/preprocess/json/article.json"}
-    article = "resource/preprocess/csv/article.csv"
-    pass
-
-# class vocabulary:
-
-#     if(os.path.isfile(constant.vocabulary['article'])):
-
-#         with open(constant.vocabulary['article']) as paper: article = json.load(paper)
-#         pass
-    
-#     pass
-
+    article = pandas.read_csv("resource/preprocess/csv/article.csv", low_memory=False).drop(['article_id', 'product_code', 'article_code'], axis=1).to_numpy()
 
 class loader:
 
@@ -74,20 +62,22 @@ class loader:
         collection['batch size'] = len(iteration)
         collection['mode'] = mode
         collection['item'] = []
-        collection['sequence'] = []
-        collection['variable'] = []
+        collection['y'] = []
+        collection['x1'] = []
+        collection['x2'] = []
         for item in iteration:
             
             engine = process(item=item, mode=mode)
             collection['item'] += [engine.item]
-            collection['sequence'] += [engine.sequence()]
-            collection['variable'] += [engine.variable()]
+            collection['y'] += [engine.y()]
+            collection['x1'] += [engine.x1()]
+            collection['x2'] += [engine.x2()]
             pass
 
-        collection['item']     = pandas.concat(collection['item'],axis=1).transpose()
-        collection['variable']  = torch.stack(collection['variable'], 0)
-        # batch['image']  = torch.stack(batch['image'], 0)
-        collection['sequence'] = rnn.pad_sequence(collection['sequence'], batch_first=False, padding_value=0)
+        collection['item'] = pandas.concat(collection['item'],axis=1).transpose()
+        collection['y']    = torch.stack(collection['y'], 0)
+        collection['x1']   = torch.stack(collection['x1'], 0)
+        collection['x2']   = connect(rnn.pad_sequence(collection['x2'], batch_first=False, padding_value=0))
         return(collection)
     
     pass
@@ -100,26 +90,31 @@ class process:
         self.mode = mode
         pass
     
-    def sequence(self):
+    def x1(self):
 
-        length = 12
-        token = [vocabulary.article[k] for k in self.item['sequence'].split()]
-        difference = len(token)-length
-        if(difference<0): token = token + ([0]*(-difference))
-        token  = token[0:length]
-        output = torch.tensor(token, dtype=torch.int64)
+        vector = self.item.loc[(self.item.keys()!='article_code') & (self.item.keys()!='customer_id')]
+        output = torch.tensor(vector).type(torch.FloatTensor)
+        return(output)
+
+    def x2(self):
+
+        vector = [int(i) for i in self.item['article_code'].split()[:-1]]
+        output = torch.tensor(vector, dtype=torch.int64)
         return(output)
         
-    def variable(self):
+    def y(self):
 
-        vector = self.item[["FN", "Active", "club_member_status", "fashion_news_frequency", "age", "postal_code"]]
-        output = torch.tensor(vector).type(torch.FloatTensor)
+        vector = int(self.item['article_code'].split()[-1])
+        output = torch.tensor(vector, dtype=torch.int64)
         return(output)
 
     pass
 
+def connect(x="(length, batch)"):
 
-
+    x = [constant.article[x[l,:], :] for l in range(len(x))]
+    x = torch.tensor(numpy.stack(x, axis=0))
+    return(x)
 
 # item = dataset.train.__getitem__(2)
 # item = item[["FN", "Active", "club_member_status", "fashion_news_frequency", "age", "postal_code"]]
@@ -192,3 +187,4 @@ class process:
 #     height, width = size[0]*scale, size[1]*scale
 #     picture = picture.resize((height, width))
 #     return(picture)
+

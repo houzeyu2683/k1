@@ -1,4 +1,6 @@
 
+import torch
+from data.loader import constant
 import library
 import data
 import network
@@ -10,8 +12,23 @@ split = data.split(table=table.f1, method='fold', size=10)
 k = 1
 split.get(fold=k)
 dataset = data.dataset(train=split.train, validation=split.validation)
-loader = data.loader(batch=64)
+loader = data.loader(batch=8)
 loader.define(train=dataset.train, validation=dataset.validation, test=None)
+b = next(iter(loader.train))
+constant.article[b['x2'][:,0],:]
+
+x = b['x2']
+
+torch.nn.Embedding(60000, 20)(x[:,:,0]).shape
+
+b['y']
+
+
+item = c['item'][0]
+c['x2'][0]
+constant.article
+[int(i) for i in item['article_code'].split()[:-1]]
+
 
 model = network.model()
 machine = network.machine(model=model, device='cuda', folder='./cache')
@@ -27,7 +44,7 @@ for e in range(20):
 
 
 
-
+table.f1.columns
 
 
 
