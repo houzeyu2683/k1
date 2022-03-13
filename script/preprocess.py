@@ -8,7 +8,7 @@ table = data.table(source='kaggle')
 cache = data.cache(storage='resource/preprocess')
 
 ##  建構標記資料, 根據提交表的格式, 以用戶當作 row 來建構對應的標記.
-cache.label = table.transaction.head(200000)[['customer_id', 't_dat', 'article_id']].groupby(['customer_id', 't_dat'])['article_id'].apply(" ".join).reset_index()
+cache.label = table.transaction[['customer_id', 't_dat', 'article_id']].groupby(['customer_id', 't_dat'])['article_id'].apply(" ".join).reset_index()
 cache.label = cache.label.pivot_table(values='article_id', index='customer_id', columns='t_dat', aggfunc='first')
 cache.label = cache.label.rename_axis(None, axis=1).reset_index()
 cache.label['sequence'] = cache.label.fillna("").iloc[:,1:].apply(lambda x: " ".join(" ".join(x).split()), 1)
