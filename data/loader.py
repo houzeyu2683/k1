@@ -12,18 +12,19 @@ import json
 
 class constant:
 
-    version = '1.0.0'
-    vocabulary = {'article':"resource/preprocess/json/article.json"}
+    version = '1.0.1'
+    # vocabulary = {'article':"resource/preprocess/json/article.json"}
+    article = "resource/preprocess/csv/article.csv"
     pass
 
-class vocabulary:
+# class vocabulary:
 
-    if(os.path.isfile(constant.vocabulary['article'])):
+#     if(os.path.isfile(constant.vocabulary['article'])):
 
-        with open(constant.vocabulary['article']) as paper: article = json.load(paper)
-        pass
+#         with open(constant.vocabulary['article']) as paper: article = json.load(paper)
+#         pass
     
-    pass
+#     pass
 
 
 class loader:
