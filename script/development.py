@@ -9,12 +9,12 @@ split = data.split(table=table.f1, method='fold', size=10)
 
 k = 1
 split.get(fold=k)
-dataset = data.dataset(train=split.train.head(1000), validation=split.validation.head(1000))
-loader = data.loader(batch=25)
+dataset = data.dataset(train=split.train, validation=split.validation)
+loader = data.loader(batch=64)
 loader.define(train=dataset.train, validation=dataset.validation, test=None)
 
 model = network.model()
-machine = network.machine(model=model, device='cpu', folder='./cache')
+machine = network.machine(model=model, device='cuda', folder='./cache')
 machine.prepare()
 
 for e in range(20):

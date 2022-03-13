@@ -18,7 +18,11 @@ class constant:
 
 class vocabulary:
 
-    with open(constant.vocabulary['article']) as paper: article = json.load(paper)
+    if(os.path.isfile(constant.vocabulary['article'])):
+
+        with open(constant.vocabulary['article']) as paper: article = json.load(paper)
+        pass
+    
     pass
 
 
