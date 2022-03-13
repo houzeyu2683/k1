@@ -13,7 +13,7 @@ import json
 class constant:
 
     version = '1.0.1'
-    article = pandas.read_csv("resource/preprocess/csv/article.csv", low_memory=False).drop(['article_id', 'product_code', 'article_code'], axis=1).to_numpy()
+    article = pandas.read_csv("resource/preprocess/csv/article.csv", low_memory=False).drop(['article_id'], axis=1).to_numpy()
 
 class loader:
 

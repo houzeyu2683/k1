@@ -9,12 +9,22 @@ import network
 table = data.table(source='preprocess')
 split = data.split(table=table.f1, method='fold', size=10)
 
+
+
 k = 1
 split.get(fold=k)
 dataset = data.dataset(train=split.train, validation=split.validation)
 loader = data.loader(batch=8)
 loader.define(train=dataset.train, validation=dataset.validation, test=None)
 b = next(iter(loader.train))
+
+m = network.model()
+x = m([b['x1'], b['x2']])
+x[0].shape
+x[1].shape
+
+##  剩下 loss 定好 然後 machine 寫好 metric 設定好舊可以訓練了.
+
 constant.article[b['x2'][:,0],:]
 
 x = b['x2']
