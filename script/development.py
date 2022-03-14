@@ -16,35 +16,18 @@ split.get(fold=k)
 dataset = data.dataset(train=split.train, validation=split.validation)
 loader = data.loader(batch=8)
 loader.define(train=dataset.train, validation=dataset.validation, test=None)
-b = next(iter(loader.train))
 
-m = network.model()
-x = m([b['x1'], b['x2']])
-x[0].shape
-x[1].shape
-
-##  剩下 loss 定好 然後 machine 寫好 metric 設定好舊可以訓練了.
-
-constant.article[b['x2'][:,0],:]
-
-x = b['x2']
-
-torch.nn.Embedding(60000, 20)(x[:,:,0]).shape
-
-b['y']
+# b = next(iter(loader.train))
+# m = network.model()
+# o = m([b['row'], b['sequence'], b['target']])
+# cost[0](o[0], b['target']) + cost[1](o[1], o[2], 1*(b['target']>-1))
 
 
-item = c['item'][0]
-c['x2'][0]
-constant.article
-[int(i) for i in item['article_code'].split()[:-1]]
-
-
-model = network.model()
-machine = network.machine(model=model, device='cuda', folder='./cache')
+model = network.v2.model()
+machine = network.v2.machine(model=model, device='cpu', folder='./cache')
 machine.prepare()
 
-for e in range(20):
+for e in range(5):
 
     machine.learn(train=loader.train, validation=loader.validation)
     machine.save(what='history')

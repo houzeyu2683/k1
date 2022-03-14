@@ -80,7 +80,7 @@ class table:
         if(source=='preprocess'):
 
             start = time.time()
-            self.f1 = pandas.read_csv(os.path.join(root, source, 'csv', 'f1.csv'), low_memory=False, nrows=100000)
+            self.f1 = pandas.read_csv(os.path.join(root, source, 'csv', 'f1.csv'), low_memory=False)
             # self.user = pandas.read_csv(os.path.join(root, source, 'csv', 'user.csv'), low_memory=False)
             # self.target = pandas.read_csv(os.path.join(root, source, 'csv', 'target.csv'), low_memory=False)
             end = time.time()

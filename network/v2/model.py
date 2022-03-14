@@ -9,11 +9,11 @@ class constant:
     article = 300
     pass
 
-class sequence(nn.Module):
+class record(nn.Module):
 
     def __init__(self):
 
-        super(sequence, self).__init__()
+        super(record, self).__init__()
         layer = dict()
         layer['e01'] = nn.Embedding(47224, constant.article)
         layer['e02'] = nn.Embedding(45877, constant.article)
@@ -68,21 +68,19 @@ class model(nn.Module):
 
         super(model, self).__init__()
         layer = dict()
-        layer['sequence'] = sequence()
+        layer['record'] = record()
         layer['f1']     = nn.Sequential(nn.Linear(604, 2048), nn.Tanh(), nn.Dropout(0.2))
         layer['f2']     = nn.Sequential(nn.Linear(2048+2048, 2048), nn.Tanh(), nn.Dropout(0.2))
-        layer['f3']     = nn.Sequential(nn.Linear(2048, 300), nn.Sigmoid())
-        layer['f4']     = nn.Sequential(nn.Linear(2048, 105544), nn.Sigmoid())
+        layer['f3']     = nn.Sequential(nn.Linear(2048, 105544), nn.Sigmoid())
+        layer['f4']     = nn.Sequential(nn.Linear(2048, 300), nn.Sigmoid())
         self.layer = nn.ModuleDict(layer)
         return
 
-    def forward(self, x='[x1, x2]'):
+    def forward(self, x='[row, sequence, target]'):
 
-        x1, x2 = x
-        group = torch.cat([self.layer['f1'](x1), self.layer['sequence'](x2)], 1)
+        group = torch.cat([self.layer['f1'](x[0]), self.layer['record'](x[1])], 1)
         group = self.layer['f2'](group)
-        y1 = self.layer['f3'](group)
-        y2 = self.layer['f4'](group)
-        return(y1, y2)
+        y = self.layer['f3'](group), self.layer['f4'](group), self.layer['record'].layer['e25'](x[2])
+        return(y)
 
     pass
