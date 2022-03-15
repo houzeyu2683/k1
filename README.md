@@ -29,3 +29,5 @@ garment_group_no                    23
 garment_group_name                  23
 detail_desc                      43407
 article_code                    105544
+
+

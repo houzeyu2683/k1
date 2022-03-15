@@ -1,6 +1,5 @@
 
-import torch
-from data.loader import constant
+
 import library
 import data
 import network
@@ -14,7 +13,7 @@ split = data.split(table=table.f1, method='fold', size=10)
 k = 1
 split.get(fold=k)
 dataset = data.dataset(train=split.train, validation=split.validation)
-loader = data.loader(batch=8)
+loader = data.loader(batch=4)
 loader.define(train=dataset.train, validation=dataset.validation, test=None)
 
 # b = next(iter(loader.train))
@@ -24,21 +23,16 @@ loader.define(train=dataset.train, validation=dataset.validation, test=None)
 
 
 model = network.v2.model()
-machine = network.v2.machine(model=model, device='cpu', folder='./cache')
+machine = network.v2.machine(model=model, device='cuda', folder='./cache')
 machine.prepare()
 
-for e in range(5):
+for e in range(20):
 
     machine.learn(train=loader.train, validation=loader.validation)
     machine.save(what='history')
     machine.save(what='checkpoint')
     machine.update(what='checkpoint')
     continue
-
-
-
-table.f1.columns
-
 
 
 # machine.history.loss['train']
