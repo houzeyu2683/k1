@@ -10,10 +10,10 @@ from torchvision import transforms as kit
 from functools import partial
 import json
 
-class constant:
+# class constant:
 
-    version = '1.0.1'
-    article = pandas.read_csv("resource/preprocess/csv/article.csv", low_memory=False).drop(['article_id'], axis=1).to_numpy()
+#     version = '1.0.1'
+#     article = pandas.read_csv("resource/preprocess/csv/article.csv", low_memory=False).drop(['article_id'], axis=1).to_numpy()
 
 class loader:
 
