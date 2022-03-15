@@ -3,10 +3,6 @@ import pandas
 import functools
 import numpy
 
-x = pandas.DataFrame({"id":['a', 'b', 'c'], '1':[1,2,3], '2':[4,5,6]})
-x.iloc[:,1:] = x.iloc[:,1:].apply(lambda x: x/x.max(), axis=0)
-x
-
 class cross:
 
     def statistic(table=None, key='id', category=None, numeric=None):
@@ -61,5 +57,7 @@ class cross:
 
         group = functools.reduce(lambda x, y: pandas.merge(x, y, on=key, how='inner'), group)
         return(group)
+
+    pass
 
 

@@ -1,5 +1,5 @@
 
-##
+##  套件.
 import feature
 import library
 import data
@@ -7,24 +7,78 @@ import data
 ##  宣告暫存物件.
 cache = data.cache(storage='resource/preprocess')
 
-##  Load all data table.
+##  載入所有的表格資料.
 table = data.table(source='kaggle')
 
-##
-table.article['article_code'] = table.article['article_code'].astype(int)
-table.article = table.article.sort_values(['article_code'])
-cache.save(what=table.article, file='article.csv', format='csv')
+##  針對 article 表進行前處理.
+cache.article = table.article.copy()
+cache.article["detail_desc"] = cache.article["detail_desc"].fillna("missing value")
+cache.article['article_code'] = feature.category.encode(cache.article['article_id'], 2)
+loop = [
+    'product_code', 'prod_name', 'product_type_no',
+    'product_type_name', 'product_group_name', 'graphical_appearance_no',
+    'graphical_appearance_name', 'colour_group_code', 'colour_group_name',
+    'perceived_colour_value_id', 'perceived_colour_value_name',
+    'perceived_colour_master_id', 'perceived_colour_master_name',
+    'department_no', 'department_name', 'index_code', 'index_name',
+    'index_group_no', 'index_group_name', 'section_no', 'section_name',
+    'garment_group_no', 'garment_group_name', 'detail_desc'
+]
+for l in loop: 
+    
+    cache.article[l] = feature.category.encode(cache.article[l], 2)
+    pass
 
-##  商品資訊資料表與交易紀錄表進行合併, 擴充交易資料表.
-table.transaction = library.pandas.merge(table.transaction, table.article, on="article_id", how='inner')
-table.transaction = library.pandas.merge(table.transaction, table.customer, on="customer_id", how='inner')
+default = [["<padding>"]+[0 for _ in range(25)], ["<start>"]+[1 for i in range(25)]]
+default = library.pandas.DataFrame(default, columns=cache.article.columns)
+cache.article = library.pandas.concat([default, cache.article])
+cache.save(what=cache.article, file='article.csv', format='csv')
 
-##  建構標記資料, 根據提交表的格式, 以用戶當作 row 來建構對應的標記.
-cache.label = table.transaction[['customer_id', 't_dat', 'article_code']].groupby(['customer_id', 't_dat'])['article_code'].apply(" ".join).reset_index()
-cache.label = cache.label.groupby(['customer_id'])['article_code'].apply(" ".join).reset_index()
-cache.label['article_code'] = ["1 " + i for i in cache.label['article_code']]
-cache.save(what=cache.label, file='label.csv', format='csv')
+##  針對 transaction 表進行前處理, 以用戶當作 row 來建構對應的標記與特徵.
+cache.transaction = library.pandas.merge(table.transaction, cache.article[['article_id', "article_code"]], on="article_id", how='inner').copy()
+cache.transaction['sales_channel_id'] = feature.category.encode(cache.transaction['sales_channel_id'], 2)
+cache.transaction['price'] = 1 + (cache.transaction['price'] / cache.transaction['price'].max())
+cache.transaction['article_code'] = cache.transaction['article_code'].astype(str)
+cache.transaction['price'] = cache.transaction['price'].astype(str)
+cache.transaction['sales_channel_id'] = cache.transaction['sales_channel_id'].astype(str)
+row = {}
+row['article_code'] = cache.transaction[['customer_id', 't_dat', 'article_code']].groupby(['customer_id', 't_dat'])['article_code'].apply(" ".join).reset_index()
+row['article_code'] = row['article_code'][['customer_id', 't_dat', 'article_code']].groupby(['customer_id'])['article_code'].apply(" ".join).reset_index()
+row['price'] = cache.transaction[['customer_id', 't_dat', 'price']].groupby(['customer_id', 't_dat'])['price'].apply(" ".join).reset_index()
+row['price'] = row['price'][['customer_id', 't_dat', 'price']].groupby(['customer_id'])['price'].apply(" ".join).reset_index()
+row['sales_channel_id'] = cache.transaction[['customer_id', 't_dat', 'sales_channel_id']].groupby(['customer_id', 't_dat'])['sales_channel_id'].apply(" ".join).reset_index()
+row['sales_channel_id'] = row['sales_channel_id'][['customer_id', 't_dat', 'sales_channel_id']].groupby(['customer_id'])['sales_channel_id'].apply(" ".join).reset_index()
+row = [row[k] for k in row.keys()]
+cache.transaction = library.functools.reduce(lambda x,y: library.pandas.merge(left=x, right=y, on='customer_id', how='inner'), row)
+cache.transaction['article_code'] = cache.transaction['article_code'].apply(lambda x: "1 " + x)
+cache.transaction['price'] = cache.transaction['price'].apply(lambda x: "1 " + x)
+cache.transaction['sales_channel_id'] = cache.transaction['sales_channel_id'].apply(lambda x: "1 " + x)
+cache.save(what=cache.transaction, file='transaction.csv', format='csv')
 
+##  針對 customer 表進行前處理.
+cache.customer = table.customer.copy()
+cache.customer['FN'] = cache.customer['FN'].fillna(0.0)
+cache.customer['Active'] = cache.customer['Active'].fillna(0.0)
+cache.customer['club_member_status'] = cache.customer['club_member_status'].fillna("MISS")
+cache.customer['fashion_news_frequency'] = cache.customer['fashion_news_frequency'].fillna("MISS")
+cache.customer['age'] = cache.customer['age'].fillna(36.0)
+cache.customer['club_member_status'] = feature.category.encode(cache.customer['club_member_status'], 0)
+cache.customer['fashion_news_frequency'] = feature.category.encode(cache.customer['fashion_news_frequency'], 0)
+cache.customer['age'] = cache.customer['age'] / 100
+cache.customer['postal_code'] = feature.category.encode(cache.customer['postal_code'], 0)
+cache.save(what=cache.customer, file='customer.csv', format='csv')
+
+##  整合特徵.
+cache.f1 = library.pandas.merge(left=cache.customer, right=cache.transaction, on='customer_id', how='inner')
+cache.save(cache.f1, 'f1.csv', 'csv')
+
+
+
+
+
+
+
+'''
 ##  根據用戶來建構特徵, 為了建構驗證資料, 會需要在交易紀錄表中動手腳.
 ##  刪除最後 step 次購買賞品的紀錄, 前面的歷史紀錄當作特徵, 第 step 時間購買的商品就是想要預測的值.
 step = 1
@@ -72,3 +126,4 @@ cache.save(what=cache.f1, file='f1.csv', format='csv')
 
 
 # list(cache.f1.keys())
+'''
