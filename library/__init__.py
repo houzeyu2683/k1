@@ -7,5 +7,8 @@ import PIL.Image
 import sklearn
 import time
 import json
-from sklearn import preprocessing
+import torch
+import torchvision
+import sklearn
 import functools 
+from sklearn import preprocessing

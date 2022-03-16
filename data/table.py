@@ -15,7 +15,7 @@ class table:
             start = time.time()
 
             ##  資料 transaction 表.
-            self.transaction = pandas.read_csv(os.path.join(root, source, 'csv', "transactions_train.csv"), dtype={'article_id':str})
+            self.transaction = pandas.read_csv(os.path.join(root, source, 'csv', "transactions_train.csv"), dtype={'article_id':str}, nrows=100000)
 
             ##  資料 submission 表.
             self.submission = pandas.read_csv(os.path.join(root, source, 'csv', "sample_submission.csv"))
