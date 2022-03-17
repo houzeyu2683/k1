@@ -6,7 +6,7 @@ from torch import nn
 class constant:
 
     version = '1.0.0'
-    article = 300
+    article = 150
     pass
 
 class record(nn.Module):
@@ -15,7 +15,7 @@ class record(nn.Module):
 
         super(record, self).__init__()
         layer = dict()
-        layer['e01'] = nn.Embedding(47224, constant.article)
+        layer['e01'] = nn.Embedding(47226, constant.article)
         layer['e02'] = nn.Embedding(45877, constant.article)
         layer['e03'] = nn.Embedding(134, constant.article)
         layer['e04'] = nn.Embedding(133, constant.article)
@@ -44,7 +44,7 @@ class record(nn.Module):
             encoder_layer=nn.TransformerEncoderLayer(25*constant.article, 5),
             num_layers=2
         )
-        layer['f1'] = nn.Sequential(nn.Linear(25*constant.article, 2048), nn.Tanh(), nn.Dropout(0.2))
+        layer['f1'] = nn.Sequential(nn.Linear(25*constant.article, 512), nn.Tanh(), nn.Dropout(0.2))
         self.layer = nn.ModuleDict(layer)
         return
 
@@ -69,10 +69,10 @@ class model(nn.Module):
         super(model, self).__init__()
         layer = dict()
         layer['record'] = record()
-        layer['f1']     = nn.Sequential(nn.Linear(604, 2048), nn.Tanh(), nn.Dropout(0.2))
-        layer['f2']     = nn.Sequential(nn.Linear(2048+2048, 2048), nn.Tanh(), nn.Dropout(0.2))
-        layer['f3']     = nn.Sequential(nn.Linear(2048, 105544), nn.Sigmoid())
-        layer['f4']     = nn.Sequential(nn.Linear(2048, 300), nn.Sigmoid())
+        layer['f1']     = nn.Sequential(nn.Linear(604, 512), nn.Tanh(), nn.Dropout(0.2))
+        layer['f2']     = nn.Sequential(nn.Linear(512+512, 512), nn.Tanh(), nn.Dropout(0.2))
+        layer['f3']     = nn.Sequential(nn.Linear(512, 105544), nn.Sigmoid())
+        layer['f4']     = nn.Sequential(nn.Linear(512, constant.article), nn.Sigmoid())
         self.layer = nn.ModuleDict(layer)
         return
 

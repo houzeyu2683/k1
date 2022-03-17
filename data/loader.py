@@ -13,7 +13,12 @@ import json
 class constant:
 
     version = '1.0.1'
-    article = pandas.read_csv("resource/preprocess/csv/article.csv", low_memory=False).drop(['article_id'], axis=1).to_numpy()
+    article = "resource/preprocess/csv/article.csv"
+    pass
+
+if(os.path.isfile(constant.article)):
+
+    constant.article = pandas.read_csv(constant.article, low_memory=False).drop(['article_id'], axis=1).to_numpy()
     pass
 
 def extend(x="article: (length, batch)"):
@@ -45,7 +50,7 @@ class loader:
         if(validation!=None):
 
             self.validation = DataLoader(
-                dataset=validation, batch_size=self.batch, 
+                dataset=validation, batch_size=4, 
                 shuffle=False , drop_last=False, 
                 collate_fn=partial(self.collect, mode='validation')
             )
@@ -55,7 +60,7 @@ class loader:
         if(test!=None):
 
             self.test = DataLoader(
-                dataset=test, batch_size=self.batch, 
+                dataset=test, batch_size=4, 
                 shuffle=False , drop_last=False, 
                 collate_fn=partial(self.collect, mode='test')
             )

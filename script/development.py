@@ -6,18 +6,18 @@ import network
 ##  Load all data table.
 table = data.table(source='preprocess')
 split = data.split(table=table.f1, method='fold', size=10)
-
+# table.f1['article_code'].apply(lambda x: len(x.split())).max()
 k = 1
 split.get(fold=k)
 dataset = data.dataset(train=split.train, validation=split.validation)
-loader = data.loader(batch=8)
+loader = data.loader(batch=36)
 loader.define(train=dataset.train, validation=dataset.validation, test=None)
 
 model = network.v3.model()
-machine = network.v3.machine(model=model, device='cpu', folder='./cache')
+machine = network.v3.machine(model=model, device='cuda', folder='./cache')
 machine.prepare()
 
-for e in range(5):
+for e in range(20):
 
     machine.learn(train=loader.train, validation=loader.validation)
     machine.save(what='history')
@@ -25,7 +25,13 @@ for e in range(5):
     machine.update(what='checkpoint')
     continue
 
+# for b in loader.train:
 
+#     model([b['x1'], b['x2'], b['x3'], b['x4'], b['x5'], b['y']])
+#     pass
+# model.layer['x1'](b['x1'])
+# model.layer['x2'](b['x2'])
+# x = b['x2']
 
 # table.f1.columns
 

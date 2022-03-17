@@ -82,7 +82,7 @@ class machine:
                     b['x4'] = batch['x4'].to(self.device)
                     b['x5'] = batch['x5'].to(self.device)
                     b['y'] = batch['y'].to(self.device)
-                    o = self.model([b['x1'], b['x2'], b['x3'], b['x4'], b['5'], b['y']])
+                    o = self.model([b['x1'], b['x2'], b['x3'], b['x4'], b['x5'], b['y']])
                     loss = self.cost(o[0], o[1], o[2])
                     iteration['validation loss'] += [loss.item()]
                     progress.set_description("validation loss : {}".format(round(iteration['validation loss'][-1], 3)))

@@ -33,6 +33,7 @@ default = [["<padding>"]+[0 for _ in range(25)], ["<start>"]+[1 for i in range(2
 default = library.pandas.DataFrame(default, columns=cache.article.columns)
 cache.article = library.pandas.concat([default, cache.article])
 cache.save(what=cache.article, file='article.csv', format='csv')
+cache.article.apply(lambda x: x.nunique())
 
 ##  針對 transaction 表進行前處理, 以用戶當作 row 來建構對應的標記與特徵.
 cache.transaction = library.pandas.merge(table.transaction, cache.article[['article_id', "article_code"]], on="article_id", how='inner').copy()
@@ -73,8 +74,8 @@ cache.f1 = library.pandas.merge(left=cache.customer, right=cache.transaction, on
 cache.save(cache.f1, 'f1.csv', 'csv')
 
 
-
-
+# c = library.pandas.read_csv("./resource/preprocess/csv/customer.csv")
+# c['postal_code'].nunique()
 
 
 
