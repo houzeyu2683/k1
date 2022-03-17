@@ -10,10 +10,22 @@ from torchvision import transforms as kit
 from functools import partial
 import json
 
-# class constant:
+class constant:
 
-#     version = '1.0.1'
-#     article = pandas.read_csv("resource/preprocess/csv/article.csv", low_memory=False).drop(['article_id'], axis=1).to_numpy()
+    version = '1.0.1'
+    article = "resource/preprocess/csv/article.csv"
+    pass
+
+if(os.path.isfile(constant.article)):
+
+    constant.article = pandas.read_csv(constant.article, low_memory=False).drop(['article_id'], axis=1).to_numpy()
+    pass
+
+def extend(x="article: (length, batch)"):
+
+    x = [constant.article[x[l,:], :] for l in range(len(x))]
+    x = torch.tensor(numpy.stack(x, axis=0))
+    return(x)
 
 class loader:
 
@@ -38,7 +50,7 @@ class loader:
         if(validation!=None):
 
             self.validation = DataLoader(
-                dataset=validation, batch_size=self.batch, 
+                dataset=validation, batch_size=4, 
                 shuffle=False , drop_last=False, 
                 collate_fn=partial(self.collect, mode='validation')
             )
@@ -48,7 +60,7 @@ class loader:
         if(test!=None):
 
             self.test = DataLoader(
-                dataset=test, batch_size=self.batch, 
+                dataset=test, batch_size=4, 
                 shuffle=False , drop_last=False, 
                 collate_fn=partial(self.collect, mode='test')
             )
@@ -62,22 +74,31 @@ class loader:
         collection['size'] = len(iteration)
         collection['mode'] = mode
         collection['item'] = []
-        collection['target'] = []
-        collection['row'] = []
-        collection['sequence'] = []
+        collection['x1'] = []
+        collection['x2'] = []
+        collection['x3'] = []
+        collection['x4'] = []
+        collection['x5'] = []
+        collection['y'] = []
         for item in iteration:
             
             engine = process(item=item, mode=mode)
             collection['item'] += [engine.item]
-            collection['target'] += [engine.target()]
-            collection['row'] += [engine.row()]
-            collection['sequence'] += [engine.sequence()]
+            collection['x1'] += [engine.x1()]
+            collection['x2'] += [engine.x2()]
+            collection['x3'] += [engine.x3()]
+            collection['x4'] += [engine.x4()]
+            collection['x5'] += [engine.x5()]
+            collection['y'] += [engine.y()]
             pass
 
-        collection['item'] = pandas.concat(collection['item'],axis=1).transpose()
-        collection['target']    = torch.stack(collection['target'], 0)
-        collection['row']   = torch.stack(collection['row'], 0)
-        collection['sequence']   = connect(rnn.pad_sequence(collection['sequence'], batch_first=False, padding_value=0))
+        collection['item']      = pandas.concat(collection['item'],axis=1).transpose()
+        collection['x1']        = torch.stack(collection['x1'], 0)
+        collection['x2']        = torch.stack(collection['x2'], 0)
+        collection['x3']        = extend(rnn.pad_sequence(collection['x3'], batch_first=False, padding_value=0))
+        collection['x4']        = rnn.pad_sequence(collection['x4'], batch_first=False, padding_value=0)
+        collection['x5']        = rnn.pad_sequence(collection['x5'], batch_first=False, padding_value=0)
+        collection['y']         = torch.stack(collection['y'], 0)
         return(collection)
     
     pass
@@ -90,29 +111,44 @@ class process:
         self.mode = mode
         pass
     
-    def row(self):
+    def x1(self):
 
-        vector = self.item.loc[(self.item.keys()!='article_code') & (self.item.keys()!='customer_id')]
+        vector = self.item[['FN', 'Active', 'club_member_status', 'fashion_news_frequency', 'age']]
         output = torch.tensor(vector).type(torch.FloatTensor)
         return(output)
 
-    def sequence(self):
+    def x2(self):
+
+        vector = self.item[["postal_code"]]
+        output = torch.tensor(vector).type(torch.LongTensor)
+        return(output)
+
+    def x3(self):
 
         vector = [int(i) for i in self.item['article_code'].split()[:-1]]
-        output = torch.tensor(vector, dtype=torch.int64)
+        output = torch.tensor(vector).type(torch.LongTensor)
+        return(output)
+
+    def x4(self):
+
+        vector = [float(i) for i in self.item['price'].split()[:-1]]
+        output = torch.tensor(vector).type(torch.FloatTensor)
+        return(output)
+
+    def x5(self):
+
+        vector = [int(i) for i in self.item['sales_channel_id'].split()[:-1]]
+        output = torch.tensor(vector).type(torch.LongTensor)
         return(output)
         
-    def target(self):
+    def y(self):
 
-        vector = int(self.item['article_code'].split()[-1])
+        order = self.item['article_code'].split()
+        vector = [int(order[-1]), len(order), 1]
         output = torch.tensor(vector, dtype=torch.int64)
         return(output)
 
     pass
 
-def connect(x="(length, batch)"):
 
-    x = [constant.article[x[l,:], :] for l in range(len(x))]
-    x = torch.tensor(numpy.stack(x, axis=0))
-    return(x)
 

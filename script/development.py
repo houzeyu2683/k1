@@ -1,5 +1,4 @@
 
-
 import library
 import data
 import network
@@ -7,23 +6,15 @@ import network
 ##  Load all data table.
 table = data.table(source='preprocess')
 split = data.split(table=table.f1, method='fold', size=10)
-
-
-
+# table.f1['article_code'].apply(lambda x: len(x.split())).max()
 k = 1
 split.get(fold=k)
 dataset = data.dataset(train=split.train, validation=split.validation)
-loader = data.loader(batch=4)
+loader = data.loader(batch=36)
 loader.define(train=dataset.train, validation=dataset.validation, test=None)
 
-# b = next(iter(loader.train))
-# m = network.model()
-# o = m([b['row'], b['sequence'], b['target']])
-# cost[0](o[0], b['target']) + cost[1](o[1], o[2], 1*(b['target']>-1))
-
-
-model = network.v2.model()
-machine = network.v2.machine(model=model, device='cuda', folder='./cache')
+model = network.v3.model()
+machine = network.v3.machine(model=model, device='cuda', folder='./cache')
 machine.prepare()
 
 for e in range(20):
@@ -33,6 +24,17 @@ for e in range(20):
     machine.save(what='checkpoint')
     machine.update(what='checkpoint')
     continue
+
+# for b in loader.train:
+
+#     model([b['x1'], b['x2'], b['x3'], b['x4'], b['x5'], b['y']])
+#     pass
+# model.layer['x1'](b['x1'])
+# model.layer['x2'](b['x2'])
+# x = b['x2']
+
+# table.f1.columns
+
 
 
 # machine.history.loss['train']
@@ -96,3 +98,29 @@ for e in range(20):
 
 
 
+# b = next(iter(loader.train))
+# b['y'].shape
+# b['x3'].shape
+# x1 = network.v3.x1()(b['x1'])
+# x2 = network.v3.x2()(b['x2'])
+# x3 = network.v3.x3()(b['x3'])
+# x4 = network.v3.x4()(b['x4'])
+# x5 = network.v3.x5()(b['x5'])
+# m = network.v3.model()
+# o = m([b['x1'],b['x2'],b['x3'],b['x4'],b['x5'],b['y']])
+# # x = [b['x1'],b['x2'],b['x3'],b['x4'],b['x5'],b['y']]
+# # o[0].shape
+# # o[1].shape
+
+# # b['y'][:,2:3].shape
+# l = library.torch.nn.CosineEmbeddingLoss()
+# l(o[0], o[1], o[2])
+# # import torch
+# # torch.stack([x1,x2], 0).shape
+# # item = dataset.train.__getitem__(2)
+# # b['x3'][:,0,:].shape
+# # b = next(iter(loader.train))
+# # m = network.model()
+# # o = m([b['row'], b['sequence'], b['target']])
+# # cost[0](o[0], b['target']) + cost[1](o[1], o[2], 1*(b['target']>-1))
+# b['x3'][:,:,0]
