@@ -9,6 +9,6 @@ import time
 import json
 import torch
 import torchvision
-import sklearn
 import functools 
+import sklearn
 from sklearn import preprocessing

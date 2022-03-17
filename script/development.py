@@ -29,7 +29,17 @@ for e in range(5):
 
 # table.f1.columns
 
+# import torch
+# v = torch.randn((3, 5))
+# e = torch.randn((3, 5))
+# t = torch.tensor([1,1,1])
 
+# b = 3
+# for r in range(b):
+#     r = 0
+#     v[r:r+1,:].repeat(b, 1), e, 
+# v[0:1, :]
+# e[-0:]
 
 # machine.history.loss['train']
 
