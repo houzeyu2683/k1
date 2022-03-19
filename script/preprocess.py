@@ -33,9 +33,10 @@ default = [["<padding>"]+[0 for _ in range(25)], ["<start>"]+[1 for i in range(2
 default = library.pandas.DataFrame(default, columns=cache.article.columns)
 cache.article = library.pandas.concat([default, cache.article])
 cache.save(what=cache.article, file='article.csv', format='csv')
-cache.article.apply(lambda x: x.nunique())
+cache.save(what=cache.article.apply(lambda x: x.nunique()), file='article embedding information.csv', format='csv')
 
 ##  針對 transaction 表進行前處理, 以用戶當作 row 來建構對應的標記與特徵.
+table.transaction = table.transaction.head(200000)
 cache.transaction = library.pandas.merge(table.transaction, cache.article[['article_id', "article_code"]], on="article_id", how='inner').copy()
 cache.transaction['sales_channel_id'] = feature.category.encode(cache.transaction['sales_channel_id'], 2)
 cache.transaction['price'] = 1 + (cache.transaction['price'] / cache.transaction['price'].max())
