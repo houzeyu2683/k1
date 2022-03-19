@@ -14,10 +14,10 @@ loader = data.loader(batch=36)
 loader.define(train=dataset.train, validation=dataset.validation, test=None)
 
 model = network.v3.model()
-machine = network.v3.machine(model=model, device='cuda', folder='./cache')
+machine = network.v3.machine(model=model, device='cuda', folder='./log(v3)')
 machine.prepare()
 
-for e in range(20):
+for e in range(50):
 
     machine.learn(train=loader.train, validation=loader.validation)
     machine.save(what='history')

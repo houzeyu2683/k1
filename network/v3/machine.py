@@ -26,7 +26,7 @@ class machine:
     def prepare(self):
 
         self.cost       = torch.nn.CosineEmbeddingLoss()
-        self.optimizer  = torch.optim.Adam(self.model.parameters(), lr=1e-4, betas=(0.9, 0.98), eps=1e-9)
+        self.optimizer  = torch.optim.Adam(self.model.parameters(), lr=1e-3, betas=(0.9, 0.98), eps=1e-9)
         self.history    = history
         self.checkpoint = 0
         os.makedirs(self.folder, exist_ok=True) if(self.folder) else None
@@ -90,8 +90,16 @@ class machine:
                     b['x4'] = batch['x4'].to(self.device)
                     b['x5'] = batch['x5'].to(self.device)
                     b['y'] = batch['y'].to(self.device)
-                    o = self.model([b['x1'], b['x2'], b['x3'], b['x4'], b['5'], b['y']])
-                    loss = self.cost(o[0], o[1], o[2])
+                    o = self.model([b['x1'], b['x2'], b['x3'], b['x4'], b['x5'], b['y']])
+                    loss = 0.0
+                    for l in range(batch['size']):
+
+                        t = o[2].clone().squeeze() * -1
+                        t[l] = 1
+                        loss = loss + self.cost(o[0][l:l+1,:].repeat(batch['size'], 1), o[1], t)
+                        pass                    
+    
+                    # loss = self.cost(o[0], o[1], o[2])
                     iteration['validation loss'] += [loss.item()]
                     progress.set_description("validation loss : {}".format(round(iteration['validation loss'][-1], 3)))
                     pass

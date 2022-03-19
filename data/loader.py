@@ -9,6 +9,7 @@ from torch.nn.utils import rnn
 from torchvision import transforms as kit
 from functools import partial
 import json
+import random
 
 class constant:
 
@@ -16,10 +17,7 @@ class constant:
     article = "resource/preprocess/csv/article.csv"
     pass
 
-if(os.path.isfile(constant.article)):
-
-    constant.article = pandas.read_csv(constant.article, low_memory=False).drop(['article_id'], axis=1).to_numpy()
-    pass
+constant.article = pandas.read_csv(constant.article, low_memory=False).drop(['article_id'], axis=1).to_numpy() if(os.path.isfile(constant.article)) else constant.article
 
 def extend(x="article: (length, batch)"):
 
@@ -77,7 +75,6 @@ class loader:
         collection['x1'] = []
         collection['x2'] = []
         collection['x3'] = []
-        collection['x4'] = []
         collection['x5'] = []
         collection['y'] = []
         for item in iteration:
@@ -86,8 +83,7 @@ class loader:
             collection['item'] += [engine.item]
             collection['x1'] += [engine.x1()]
             collection['x2'] += [engine.x2()]
-            collection['x3'] += [engine.x3()]
-            collection['x4'] += [engine.x4()]
+            collection['x3'] += [engine.x4()]
             collection['x5'] += [engine.x5()]
             collection['y'] += [engine.y()]
             pass
@@ -95,8 +91,8 @@ class loader:
         collection['item']      = pandas.concat(collection['item'],axis=1).transpose()
         collection['x1']        = torch.stack(collection['x1'], 0)
         collection['x2']        = torch.stack(collection['x2'], 0)
-        collection['x3']        = extend(rnn.pad_sequence(collection['x3'], batch_first=False, padding_value=0))
-        collection['x4']        = rnn.pad_sequence(collection['x4'], batch_first=False, padding_value=0)
+        # collection['x3']        = extend(rnn.pad_sequence(collection['x3'], batch_first=False, padding_value=0))
+        collection['x3']        = rnn.pad_sequence(collection['x3'], batch_first=False, padding_value=0)
         collection['x5']        = rnn.pad_sequence(collection['x5'], batch_first=False, padding_value=0)
         collection['y']         = torch.stack(collection['y'], 0)
         return(collection)
@@ -111,41 +107,57 @@ class process:
         self.mode = mode
         pass
     
+    ##  Handle user row numeric feature.
     def x1(self):
 
         vector = self.item[['FN', 'Active', 'club_member_status', 'fashion_news_frequency', 'age']]
         output = torch.tensor(vector).type(torch.FloatTensor)
         return(output)
 
+    ##  Handle user row categorical feature.
     def x2(self):
 
         vector = self.item[["postal_code"]]
         output = torch.tensor(vector).type(torch.LongTensor)
         return(output)
 
+    ##  Handle price sequence.
     def x3(self):
-
-        vector = [int(i) for i in self.item['article_code'].split()[:-1]]
-        output = torch.tensor(vector).type(torch.LongTensor)
+        
+        blank = 1
+        vector = [float(i) for i in self.item['price'].split()]
+        knife = random.randint(1, len(vector)+(blank-1))
+        vector = [0.0] + vector
+        output = (
+            torch.tensor(vector[:knife].type(torch.FloatTensor)), 
+            torch.tensor([0.0] + vector[knife:][0:blank]).type(torch.FloatTensor)
+        )
         return(output)
 
+    ##  Handle channel sequence.
     def x4(self):
-
-        vector = [float(i) for i in self.item['price'].split()[:-1]]
-        output = torch.tensor(vector).type(torch.FloatTensor)
+        
+        blank = 1
+        vector = [int(i) for i in self.item['sales_channel_id'].split()]
+        knife = random.randint(1, len(vector)+(blank-1))
+        vector = [1] + vector
+        output = (
+            torch.tensor(vector[:knife].type(torch.LongTensor)), 
+            torch.tensor([2] + vector[knife:][0:blank]).type(torch.LongTensor)
+        )
         return(output)
 
+    ##  Handle article sequence.
     def x5(self):
 
-        vector = [int(i) for i in self.item['sales_channel_id'].split()[:-1]]
-        output = torch.tensor(vector).type(torch.LongTensor)
-        return(output)
-        
-    def y(self):
-
-        order = self.item['article_code'].split()
-        vector = [int(order[-1]), len(order), 1]
-        output = torch.tensor(vector, dtype=torch.int64)
+        blank = 1
+        vector = [int(i) for i in self.item['article_code'].split()]
+        knife = random.randint(1, len(vector)+(blank-1))
+        vector = [1] + vector
+        output = (
+            torch.tensor(vector[:knife].type(torch.LongTensor)), 
+            torch.tensor([2] + vector[knife:][0:blank]).type(torch.LongTensor)
+        )
         return(output)
 
     pass
