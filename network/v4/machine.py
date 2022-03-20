@@ -25,7 +25,7 @@ class machine:
 
     def prepare(self):
 
-        self.cost       = torch.nn.CosineEmbeddingLoss()
+        self.cost       = [torch.nn.CrossEntropyLoss(), torch.nn.MSELoss()]
         self.optimizer  = torch.optim.Adam(self.model.parameters(), lr=1e-3, betas=(0.9, 0.98), eps=1e-9)
         self.history    = history
         self.checkpoint = 0
@@ -47,19 +47,16 @@ class machine:
 
                 self.model.zero_grad()
                 b = dict()
-                b['x1'] = batch['x1'].to(self.device)
-                b['x2'] = batch['x2'].to(self.device)    
-                b['x3'] = batch['x3'].to(self.device)
-                b['x4'] = batch['x4'].to(self.device)
-                b['x5'] = batch['x5'].to(self.device)
-                b['y'] = batch['y'].to(self.device)
-                o = self.model([b['x1'], b['x2'], b['x3'], b['x4'], b['x5'], b['y']])
+                b['i'] = batch['i'].to(self.device)
+                b['ii'] = batch['ii'].to(self.device)
+                b['iii'] = [(h.to(self.device), f.to(self.device)) for h, f in batch['iii']]
+                x = [b[k] for k in b]
+                o = self.model(x)
                 loss = 0.0
-                for l in range(batch['size']):
+                for l in range(len(o)):
 
-                    t = o[2].clone().squeeze() * -1
-                    t[l] = 1
-                    loss = loss + self.cost(o[0][l:l+1,:].repeat(batch['size'], 1), o[1], t)
+                    if(l+1<len(o)): loss += self.cost[0](o[l], b['iii'][l][1][-1,:])
+                    if(l+1==len(o)): loss += self.cost[1](o[l], b['iii'][l][1][-1,:])
                     pass
                 
                 # loss = self.cost(o[0], o[1], o[2])
@@ -84,22 +81,19 @@ class machine:
 
                 with torch.no_grad():
 
-                    b['x1'] = batch['x1'].to(self.device)
-                    b['x2'] = batch['x2'].to(self.device)    
-                    b['x3'] = batch['x3'].to(self.device)
-                    b['x4'] = batch['x4'].to(self.device)
-                    b['x5'] = batch['x5'].to(self.device)
-                    b['y'] = batch['y'].to(self.device)
-                    o = self.model([b['x1'], b['x2'], b['x3'], b['x4'], b['x5'], b['y']])
+                    b = dict()
+                    b['i'] = batch['i'].to(self.device)
+                    b['ii'] = batch['ii'].to(self.device)
+                    b['iii'] = [(h.to(self.device), f.to(self.device)) for h, f in batch['iii']]
+                    x = [b[k] for k in b]
+                    o = self.model(x)
                     loss = 0.0
-                    for l in range(batch['size']):
+                    for l in range(len(o)):
 
-                        t = o[2].clone().squeeze() * -1
-                        t[l] = 1
-                        loss = loss + self.cost(o[0][l:l+1,:].repeat(batch['size'], 1), o[1], t)
-                        pass                    
+                        if(l+1<len(o)): loss += self.cost[0](o[l], b['iii'][l][1][-1,:])
+                        if(l+1==len(o)): loss += self.cost[1](o[l], b['iii'][l][1][-1,:])
+                        pass
     
-                    # loss = self.cost(o[0], o[1], o[2])
                     iteration['validation loss'] += [loss.item()]
                     progress.set_description("validation loss : {}".format(round(iteration['validation loss'][-1], 3)))
                     pass

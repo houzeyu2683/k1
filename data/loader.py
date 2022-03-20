@@ -9,23 +9,12 @@ from torch.nn.utils import rnn
 from torchvision import transforms as kit
 from functools import partial
 import json
+import random
 
 class constant:
 
     version = '1.0.1'
-    article = "resource/preprocess/csv/article.csv"
     pass
-
-if(os.path.isfile(constant.article)):
-
-    constant.article = pandas.read_csv(constant.article, low_memory=False).drop(['article_id'], axis=1).to_numpy()
-    pass
-
-def extend(x="article: (length, batch)"):
-
-    x = [constant.article[x[l,:], :] for l in range(len(x))]
-    x = torch.tensor(numpy.stack(x, axis=0))
-    return(x)
 
 class loader:
 
@@ -74,31 +63,35 @@ class loader:
         collection['size'] = len(iteration)
         collection['mode'] = mode
         collection['item'] = []
-        collection['x1'] = []
-        collection['x2'] = []
-        collection['x3'] = []
-        collection['x4'] = []
-        collection['x5'] = []
-        collection['y'] = []
+        collection["i"]    = []
+        collection["ii"]   = []
+        collection["iii"]  = []
         for item in iteration:
             
             engine = process(item=item, mode=mode)
+            engine.prepare()
             collection['item'] += [engine.item]
-            collection['x1'] += [engine.x1()]
-            collection['x2'] += [engine.x2()]
-            collection['x3'] += [engine.x3()]
-            collection['x4'] += [engine.x4()]
-            collection['x5'] += [engine.x5()]
-            collection['y'] += [engine.y()]
+            collection["i"] += [engine.handle(step=1)]
+            collection["ii"] += [engine.handle(step=2)]
+            collection["iii"] += [engine.handle(step=3)]
+            # collection["iv"] += [engine.handle(step=4)]
             pass
 
-        collection['item']      = pandas.concat(collection['item'],axis=1).transpose()
-        collection['x1']        = torch.stack(collection['x1'], 0)
-        collection['x2']        = torch.stack(collection['x2'], 0)
-        collection['x3']        = extend(rnn.pad_sequence(collection['x3'], batch_first=False, padding_value=0))
-        collection['x4']        = rnn.pad_sequence(collection['x4'], batch_first=False, padding_value=0)
-        collection['x5']        = rnn.pad_sequence(collection['x5'], batch_first=False, padding_value=0)
-        collection['y']         = torch.stack(collection['y'], 0)
+        collection['item']     = pandas.concat(collection['item'],axis=1).transpose()
+        collection['i']        = torch.stack(collection['i'], 0)
+        collection['ii']       = torch.stack(collection['ii'], 1)
+        # history = rnn.pad_sequence([h for h, _ in collection['iii']], batch_first=False, padding_value=0)
+        # future  = rnn.pad_sequence([f for f, _ in collection['iii']], batch_first=False, padding_value=0)
+        # collection['iii'] = history, future
+        s = []
+        for i in range(len(engine.loop)):
+            
+            h = rnn.pad_sequence([b[i][0] for b in collection['iii']], batch_first=False, padding_value=0)
+            f = rnn.pad_sequence([b[i][1] for b in collection['iii']], batch_first=False, padding_value=0)
+            s += [(h, f)]
+            pass
+
+        collection['iii'] = s
         return(collection)
     
     pass
@@ -111,44 +104,77 @@ class process:
         self.mode = mode
         pass
     
-    def x1(self):
+    def prepare(self):
 
-        vector = self.item[['FN', 'Active', 'club_member_status', 'fashion_news_frequency', 'age']]
-        output = torch.tensor(vector).type(torch.FloatTensor)
-        return(output)
+        self.blank = 1
+        self.point = self.item['seq_len'] - self.blank
+        self.loop = [
+            "article_code", "sales_channel_id",
+            "product_code", "prod_name", "product_type_no", 
+            "product_type_name", "product_group_name", "graphical_appearance_no", 
+            "graphical_appearance_name", "colour_group_code", "colour_group_name", 
+            "perceived_colour_value_id", "perceived_colour_value_name", "perceived_colour_master_id", 
+            "perceived_colour_master_name", "department_no", "department_name", 
+            "index_code", "index_name", "index_group_no", 
+            "index_group_name", "section_no", "section_name", 
+            "garment_group_no", "garment_group_name", "detail_desc", 
+            'price'
+        ]
+        self.knife = random.randint(0, self.point)
+        return
 
-    def x2(self):
+    ##  Handle item.
+    def handle(self, step=1):
 
-        vector = self.item[["postal_code"]]
-        output = torch.tensor(vector).type(torch.LongTensor)
-        return(output)
+        if(step==1):
 
-    def x3(self):
+            selection = ["FN", "Active", "club_member_status", "fashion_news_frequency", "age"]
+            output = torch.tensor(self.item[selection]).type(torch.FloatTensor)
+            pass
 
-        vector = [int(i) for i in self.item['article_code'].split()[:-1]]
-        output = torch.tensor(vector).type(torch.LongTensor)
-        return(output)
+        if(step==2):
 
-    def x4(self):
+            selection = ['postal_code']
+            output = torch.tensor(self.item[selection]).type(torch.LongTensor)
+            pass
 
-        vector = [float(i) for i in self.item['price'].split()[:-1]]
-        output = torch.tensor(vector).type(torch.FloatTensor)
-        return(output)
+        # if(step==3):
 
-    def x5(self):
+        #     h = [float(i) for i in self.item['price'].split()[:self.knife]]
+        #     f = [float(i) for i in self.item['price'].split()[self.knife:][:self.blank]]
+        #     history = torch.tensor([0.0] + h).type(torch.FloatTensor)
+        #     future  = torch.tensor([0.0] + f).type(torch.FloatTensor)
+        #     output = history, future
+        #     pass
 
-        vector = [int(i) for i in self.item['sales_channel_id'].split()[:-1]]
-        output = torch.tensor(vector).type(torch.LongTensor)
-        return(output)
-        
-    def y(self):
+        if(step==3):
 
-        order = self.item['article_code'].split()
-        vector = [int(order[-1]), len(order), 1]
-        output = torch.tensor(vector, dtype=torch.int64)
+            sequence = []
+            for l in self.loop:
+
+                h = [float(i) for i in self.item[l].split()[:self.knife]]
+                f = [float(i) for i in self.item[l].split()[self.knife:][:self.blank]]
+                if(l!='price'):
+
+                    history = torch.tensor([1.0] + h).type(torch.LongTensor)
+                    future = torch.tensor([2.0] + f).type(torch.LongTensor)
+                    pass
+
+                else:
+
+                    history = torch.tensor([0.0] + h).type(torch.FloatTensor)
+                    future  = torch.tensor([0.0] + f).type(torch.FloatTensor)
+                    pass
+                
+                sequence += [(history, future)]
+                pass
+
+            output = sequence
+            pass
+
         return(output)
 
     pass
 
-
+        
 

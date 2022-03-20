@@ -6,18 +6,38 @@ import network
 ##  Load all data table.
 table = data.table(source='preprocess')
 split = data.split(table=table.f1, method='fold', size=10)
-# table.f1['article_code'].apply(lambda x: len(x.split())).max()
+
+##  Each fold.
 k = 1
 split.get(fold=k)
 dataset = data.dataset(train=split.train, validation=split.validation)
-loader = data.loader(batch=36)
-loader.define(train=dataset.train, validation=dataset.validation, test=None)
+# item = dataset.train.__getitem__(1)
 
-model = network.v3.model()
-machine = network.v3.machine(model=model, device='cuda', folder='./cache')
+loader = data.loader(batch=4)
+loader.define(train=dataset.train, validation=dataset.validation, test=None)
+# b = next(iter(loader.train))
+# x = [b['i'], b['ii'], b['iii']]
+
+
+model = network.v4.model()
+# o = model(x)
+
+# import torch.nn as nn
+# l1 = nn.CrossEntropyLoss()
+# l2 = nn.MSELoss()
+# l1(o[0], b['iii'][0][1][-1,:])
+# l2(o[-1], b['iii'][-1][1][-1,:])
+
+# len(y)
+# y[-1]
+
+
+# len(b['iii'])
+
+machine = network.v4.machine(model=model, device='cuda', folder='./log(v3)')
 machine.prepare()
 
-for e in range(20):
+for e in range(50):
 
     machine.learn(train=loader.train, validation=loader.validation)
     machine.save(what='history')
