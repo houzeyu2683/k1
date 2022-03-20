@@ -6,6 +6,7 @@ import numpy
 import pickle
 import pandas
 import json
+from sklearn import metrics
 
 class history:
 
@@ -41,7 +42,7 @@ class machine:
 
             self.model = self.model.to(self.device)
             self.model.train()
-            iteration  = {'train loss':[]}
+            iteration  = {'train loss':[], "train accuracy":[]}
             progress = tqdm.tqdm(train, leave=False)
             for batch in progress:
 
@@ -62,11 +63,14 @@ class machine:
                 # loss = self.cost(o[0], o[1], o[2])
                 loss.backward()
                 self.optimizer.step()
-                iteration['train loss'] += [loss.item()]
-                progress.set_description("train loss : {}".format(round(iteration['train loss'][-1],3)))
+                accuracy = metrics.accuracy_score(b['iii'][0][1][-1,:].cpu().numpy(), o[0].argmax(1).cpu().numpy())
+                iteration['train loss'] += [round(loss.item(), 3)]
+                iteration['train accuracy'] += [accuracy]
+                progress.set_description("train loss : {} | train accuracy : {}".format(iteration['train loss'][-1], iteration['train accuracy'][-1]))
                 pass
             
             self.history.loss['train'] += [round(numpy.array(iteration['train loss']).mean(), 3)]
+            self.history.accuracy['train'] += [round(numpy.array(iteration['train accuracy']).mean(), 3)]            
             pass
 
         if(validation):
@@ -75,7 +79,7 @@ class machine:
             self.model.eval()
             pass
             
-            iteration  = {'validation loss':[]}
+            iteration  = {'validation loss':[], 'validation accuracy':[]}
             progress = tqdm.tqdm(validation, leave=False)
             for batch in progress:
 
@@ -93,14 +97,17 @@ class machine:
                         if(l+1<len(o)): loss += self.cost[0](o[l], b['iii'][l][1][-1,:])
                         if(l+1==len(o)): loss += self.cost[1](o[l], b['iii'][l][1][-1,:])
                         pass
-    
-                    iteration['validation loss'] += [loss.item()]
-                    progress.set_description("validation loss : {}".format(round(iteration['validation loss'][-1], 3)))
+                    
+                    accuracy = metrics.accuracy_score(b['iii'][0][1][-1,:].cpu().numpy(), o[0].argmax(1).cpu().numpy())
+                    iteration['validation loss'] += [round(loss.item(), 3)]
+                    iteration['validation accuracy'] += [accuracy]
+                    progress.set_description("validation loss : {} | validation accuracy : {}".format(iteration['validation loss'][-1], iteration['validation accuracy'][-1]))
                     pass
                 
                 continue
 
             self.history.loss['validation'] += [round(numpy.array(iteration['validation loss']).mean(),3)]
+            self.history.accuracy['validation'] += [round(numpy.array(iteration['validation accuracy']).mean(),3)]
             pass
 
         return
@@ -115,6 +122,9 @@ class machine:
         if(what=='history'):
 
             with open(os.path.join(self.folder, 'loss'), 'w') as paper: json.dump(self.history.loss, paper)
+            pass
+
+            with open(os.path.join(self.folder, 'accuracy'), 'w') as paper: json.dump(self.history.accuracy, paper)
             pass
 
         if(what=='checkpoint'):
