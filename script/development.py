@@ -15,12 +15,17 @@ dataset = data.dataset(train=split.train, validation=split.validation)
 
 loader = data.loader(batch=4)
 loader.define(train=dataset.train, validation=dataset.validation, test=None)
-# b = next(iter(loader.train))
+b = next(iter(loader.train))
 # x = [b['i'], b['ii'], b['iii']]
 
 
-model = network.v4.model()
+# model = network.v4.model()
 # o = model(x)
+# from torch import nn
+# import sklearn
+
+
+
 
 # import torch.nn as nn
 # l1 = nn.CrossEntropyLoss()
