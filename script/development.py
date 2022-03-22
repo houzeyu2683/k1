@@ -4,22 +4,113 @@ import data
 import network
 
 ##  Load all data table.
-table = data.table(source='preprocess')
+table = data.table(source='preprocess(sample)')
 split = data.split(table=table.f1, method='fold', size=10)
 
 ##  Each fold.
 k = 1
 split.get(fold=k)
 dataset = data.dataset(train=split.train, validation=split.validation)
-# item = dataset.train.__getitem__(1)
 
-loader = data.loader(batch=4)
+loader = data.loader(batch=7)
 loader.define(train=dataset.train, validation=dataset.validation, test=None)
-b = next(iter(loader.train))
+batch = next(iter(loader.train))
+model = network.v5.model()
+machine = network.machine(model=model, device='cpu', folder='log')
+machine.prepare()
+machine.learn(train=loader.train)
+
+
+
+
+metric = network.v5.metric(limit=12)
+
+
+o = model(batch)
+
+
+m = metric.compute(prediction, target)
+
+
+m.evaluate()
+
+
+m = metric(, [i.squeeze().tolist() for i in y.split(1, dim=1)])
+m.evaluate()
+
+
+
+
+len()
+
+
+import torch.nn as nn
+nn.MSELoss()(y, y_hat)
+
+y = batch['sequence(article_code)']['future'][0:point,:]
+y_hat = o['next(article_code)'][0:point,:,:]
+y = y.flatten(0)
+y_hat = y_hat.flatten(0,1)
+nn.CrossEntropyLoss(ignore_index=0)(y_hat, y)
+
+y.shape
+y_hat.shape
+
+o['next(article_code)'].shape
+
+
+o['next(price)'].shape
+o['next(article_code)'].shape
+
+o['day(1)']['next(price)']
+import torch
+torch.cat([batch['sequence(price)']['history'], o['next(price)'].unsqueeze(0)], 0)
+
+oo = o['next(article_code)'].argmax(1)
+oo.unsqueeze(0)
+
+# batch.keys()
+# batch['row(numeric)']
+# batch['row(numeric)'].shape
+# batch['row(category)']
+# batch['row(category)'].shape
+# batch['sequence(price)']['history']
+# batch['sequence(price)']['history'].shape
+# batch['sequence(price)']['future']
+# batch['sequence(price)']['future'].shape
+# batch['sequence(article_code)']['history']
+# batch['sequence(article_code)']['history'].shape
+# batch['sequence(article_code)']['future']
+# batch['sequence(article_code)']['future'].shape
+
+# import torch
+# torch.tensor(b['sequence(article_code)']['history']).shape
+# torch.tensor(b['sequence(article_code)']['future']).shape
+# # b['row numeric'].shape
+# # b['row category'].shape
+# # b['sequence(price)']['history'].shape
+# b['sequence(price)']['future'].shape
+# b['sequence(article_code)']['history'].shape
+# b['sequence(article_code)']['future'].shape
+# x = [1.0372206303724927]
+# torch.tensor(x).unsqueeze(0)
+# import torch
+# from torch import nn
+# torch.cat(b['row numeric'], 0).shape
+# torch.cat(b['row category'], 1).shape
+
+# from torch.nn.utils import rnn
+# rnn.pad_sequence(b['sequence(price)']['history'], batch_first=False, padding_value=0)
+# rnn.pad_sequence(b['sequence(article_code)']['history'], batch_first=False, padding_value=0).squeeze()
+# rnn.pad_sequence(b['sequence(price)']['future'], batch_first=False, padding_value=0).shape
+# rnn.pad_sequence(b['sequence(article_code)']['future'], batch_first=False, padding_value=0).squeeze()
+
 # x = [b['i'], b['ii'], b['iii']]
 
-
-# model = network.v4.model()
+network.v5.row()(batch)
+network.v5.sequence()(batch)
+network.v5.suggestion()(batch)
+model = network.v5.model()
 # o = model(x)
 # from torch import nn
 # import sklearn
@@ -39,7 +130,7 @@ b = next(iter(loader.train))
 
 # len(b['iii'])
 
-machine = network.v4.machine(model=model, device='cuda', folder='./log(v3)')
+machine = network.v4.machine(model=model, device='cpu', folder='./log(v3)')
 machine.prepare()
 
 for e in range(50):
