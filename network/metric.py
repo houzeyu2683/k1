@@ -3,7 +3,7 @@ import numpy
 
 class metric:
 
-    def __init__(self, prediction=[['c', 'c'], ['a', 'b', 'a']], target=[['a', 'c', 'c'], ['a', 'a']]):
+    def __init__(self, prediction=[['c', 'c'], ['a', 'b', 'a']], target=[['a'], ['a']]):
 
         self.prediction = prediction
         self.target = target
@@ -16,7 +16,7 @@ class metric:
         score = numpy.mean([self.compute(p, t) for p, t in zip(self.prediction, self.target)])
         return(score) 
 
-    def compute(self, prediction=['a', 'b', 'a'], target=['a', 'a']):
+    def compute(self, prediction=['a'], target=['a', 'a']):
         
         if(len(prediction)>self.top): prediction = prediction[:self.top]
         score = 0.0
@@ -37,6 +37,50 @@ class metric:
 
     pass
 
+
+# prediction = ['a', 'c', 'b', 'c', 'c', 'c', 'a', 'a', 'd', 'c', 'a', 'a']
+# target=['a', 'c', 'b', 'c', 'c', 'c', 'a', 'c', 'd', 'c', 'a', 'a', 'a', 'a']
+# target=['a', 'c', 'b', 'c']
+
+# x = [['a', 'c'], ['a1', 'c']]
+# y = [['a', 'c'], ['a', 'c']]
+# g = (x,y)
+
+# for j,k in zip(x,y):
+
+#     print(j)
+# class metric:
+
+#     def __init__(self, limit):
+
+#         self.limit = limit
+#         return
+
+#     def compute(self, prediction, target):
+
+#         group = [prediction, target]
+#         score = []
+#         for prediction, target in zip(group[0], group[1]):
+
+#             top = min(self.limit, len(target))
+#             if(top<12): prediction = prediction[:top]
+#             if(top==12): target = target[:top]
+#             match = [1*(p==t) for p, t in zip(prediction, target)]
+#             precision = []
+#             for i, _ in enumerate(match):
+                
+#                 p = sum(match[:i+1]) if(match[i]==1) else 0
+#                 precision += [p/(i+1)]
+#                 pass
+
+#             score += [sum(precision) / top]
+#             pass
+
+#         score = numpy.mean(score)
+#         return(score)
+
+#     pass
+# metric().evaluate()
     # def apk(actual, predicted, k=10):
 
     #     """
