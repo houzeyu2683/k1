@@ -5,10 +5,10 @@ import library
 import data
 
 ##  宣告暫存物件.
-cache = feature.cache(storage='resource/preprocess(sample)')
+cache = feature.cache(storage='resource/preprocess')
 
 ##  載入所有的表格資料.
-table = data.table(source='kaggle', sample=True)
+table = data.table(source='kaggle', sample=False)
 
 ##  針對 article 表進行前處理.
 table.article["detail_desc"] = table.article["detail_desc"].fillna("missing value")
@@ -38,12 +38,7 @@ cache.article = library.pandas.concat([default, table.article]).reset_index(drop
 cache.save(what=cache.article, file='article.csv', format='csv')
 
 ##  針對 transaction 表進行前處理, 以用戶當作 row 來建構對應的標記與特徵序列.
-<<<<<<< HEAD
-table.transaction = table.transaction
-table.transaction['sales_channel_id'] = feature.category.encode(table.transaction['sales_channel_id']) + 3
-=======
 table.transaction['sales_channel_id'] = feature.category.encode(table.transaction['sales_channel_id']) + len(reservation)
->>>>>>> 499600923f8d04cae668a1057f89a269292cb673
 table.transaction['price'] = 1 + (table.transaction['price'] / table.transaction['price'].max())
 loop = ['article_code'] + [
     'product_code', 'prod_name', 'product_type_no',
@@ -98,11 +93,11 @@ cache.f1 = library.pandas.merge(left=cache.customer, right=cache.transaction, on
 cache.f1['seq_len'] = cache.f1['article_code'].apply(lambda x: len(x.split()))
 cache.save(cache.f1, 'f1.csv', 'csv')
 
-<<<<<<< HEAD
-##  整合類別種類.
-=======
+
+
+
+
 # ##  整合類別種類.
->>>>>>> 499600923f8d04cae668a1057f89a269292cb673
 # cache.embedding = dict()
 # loop = ['postal_code'] + ['article_code'] +[
 #     'product_code', 'prod_name', 

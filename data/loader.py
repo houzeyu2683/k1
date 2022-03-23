@@ -1,5 +1,4 @@
 
-from matplotlib.collections import Collection
 import pandas
 import torch
 from torch.utils.data import DataLoader
@@ -189,5 +188,4 @@ class process:
             output = history, future
             pass
 
-        
         return(output)

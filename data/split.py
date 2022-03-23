@@ -18,6 +18,11 @@ class split:
         self.block  = block
         return
 
+    def iterate(self):
+
+        loop = range(self.size)
+        return(loop)
+
     def get(self, fold=0):
 
         index = dict()
