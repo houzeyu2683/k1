@@ -4,14 +4,15 @@ import data
 import network
 
 ##  Load all data table.
-table = data.table(source='preprocess')
+table = data.table(source='preprocess(sample)')
 table.f1 = table.f1.loc[table.f1['seq_len']<100]
-# table.f1 = table.f1.sample(200).reset_index(drop=True)
+
 fold = 20
 split = data.split(table=table.f1, method='fold', size=fold)
 
 ##  Each fold.
 score = {'train':[], "validation":[]}
+k = 0
 for k in split.iterate():
 
     print("start fold {}".format(k))
@@ -19,7 +20,7 @@ for k in split.iterate():
     dataset = data.dataset(train=split.train, validation=split.validation)
     pass
 
-    loader = data.loader(batch=32)
+    loader = data.loader(batch=2)
     loader.define(train=dataset.train, validation=dataset.validation)
     pass
 
@@ -29,9 +30,10 @@ for k in split.iterate():
     pass
 
     epoch = 10
+    e = 0
     for e in range(epoch):
 
-        machine.learn(train=loader.train, validation=loader.validation)
+        machine.learn(train=loader.train)
         machine.save(what='history')
         machine.save(what='checkpoint', mode='better')
         machine.update(what='checkpoint')

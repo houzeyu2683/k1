@@ -30,7 +30,7 @@ class machine:
 
     def prepare(self):
 
-        self.cost       = {"ce":torch.nn.CrossEntropyLoss(ignore_index=0), "mse" : torch.nn.MSELoss()}
+        self.cost       = {"ce":torch.nn.CrossEntropyLoss(ignore_index=0), "mse" : torch.nn.MSELoss(), 'c' : torch.nn.CosineEmbeddingLoss()}
         self.optimizer  = torch.optim.Adam(self.model.parameters(), lr=1e-3, betas=(0.9, 0.98), eps=1e-9)
         self.history    = history()
         self.checkpoint = 0
@@ -50,6 +50,7 @@ class machine:
             iteration  = {
                 "sequence(price) loss":[],
                 'sequence(article_code) loss':[],
+                'embedding(article_code) loss':[],
                 'total loss':[],
                 'map@12 score':[]
             }
@@ -63,18 +64,31 @@ class machine:
                 batch['sequence(price)']['future'] = batch['sequence(price)']['future'].to(self.device)
                 batch['sequence(article_code)']['history'] = batch['sequence(article_code)']['history'].to(self.device)
                 batch['sequence(article_code)']['future'] = batch['sequence(article_code)']['future'].to(self.device)
+                pass
+
                 o = self.model(batch)
                 point = min(len(batch['sequence(article_code)']['future']), 12)
+                pass
+
                 loss = dict()
-                loss['sequence(price)'] = 10 * self.cost['mse'](
+                loss['sequence(price)'] = self.cost['mse'](
                     o['next(price)'][0:point,:,:], 
                     batch['sequence(price)']['future'][0:point,:,:]
                 )
                 loss['sequence(article_code)'] = self.cost['ce'](
-                    o['next(article_code)'][0:point,:].flatten(0,1), 
-                    batch['sequence(article_code)']['future'][0:point,:].flatten(0)
+                    o['next(article_code)'][0:point,:,:].flatten(0,1), 
+                    batch['sequence(article_code)']['future'][0:point,:].flatten(0,-1)
                 )
-                loss['total'] = loss['sequence(price)'] + loss['sequence(article_code)']
+                embedding = dict()
+                embedding['target'] = batch['sequence(article_code)']['future'][0:point,:].flatten(0,-1)
+                embedding['prediction'] = o['next(article_code)'][0:point,:].argmax(2).flatten(0,-1)
+                embedding['label'] = (2 * (embedding['target']==embedding['prediction'])) - 1
+                embedding['target'] = self.model.layer['suggestion'].layer['sequence'].layer['e1'](embedding['target'])
+                embedding['prediction'] = self.model.layer['suggestion'].layer['sequence'].layer['e1'](embedding['prediction'])
+                loss['embedding(article_code)'] = self.cost['c'](embedding['target'], embedding['prediction'], embedding['label'])
+                pass
+
+                loss['total'] = loss['sequence(price)'] + loss['sequence(article_code)'] + loss['embedding(article_code)']
                 loss['total'].backward()
                 self.optimizer.step()
                 pass
@@ -82,6 +96,7 @@ class machine:
                 ##  Loss value.
                 iteration['sequence(price) loss'] += [round(loss['sequence(price)'].item(), 3)]
                 iteration['sequence(article_code) loss'] += [round(loss['sequence(article_code)'].item(), 3)]
+                iteration['embedding(article_code) loss'] += [round(loss['embedding(article_code)'].item(), 3)]
                 iteration['total loss'] += [round(loss['total'].item(), 3)]
                 pass
 
@@ -97,10 +112,11 @@ class machine:
                 value = (
                     iteration['sequence(price) loss'][-1], 
                     iteration['sequence(article_code) loss'][-1], 
+                    iteration['embedding(article_code) loss'][-1],
                     iteration['total loss'][-1],
                     iteration['map@12 score'][-1]
                 )
-                message = "[train] sequence(price) loss : {} | sequence(article_code) loss : {} | total loss : {} | map@12 score : {}".format(*value)
+                message = "[train] sequence(price) loss : {} | sequence(article_code) loss : {} | embedding(article_code)loss : {} | total loss : {} | map@12 score : {}".format(*value)
                 progress.set_description(message)
                 pass
             
@@ -115,10 +131,11 @@ class machine:
             iteration  = {
                 "sequence(price) loss":[],
                 'sequence(article_code) loss':[],
+                'embedding(article_code) loss':[],
                 'total loss':[],
                 'map@12 score':[]
             }
-            progress = tqdm.tqdm(train, leave=False)
+            progress = tqdm.tqdm(validation, leave=False)
             for batch in progress:
                 
                 with torch.no_grad():
@@ -129,23 +146,39 @@ class machine:
                     batch['sequence(price)']['future'] = batch['sequence(price)']['future'].to(self.device)
                     batch['sequence(article_code)']['history'] = batch['sequence(article_code)']['history'].to(self.device)
                     batch['sequence(article_code)']['future'] = batch['sequence(article_code)']['future'].to(self.device)
+                    pass
+
                     o = self.model(batch)
                     point = min(len(batch['sequence(article_code)']['future']), 12)
+                    pass
+
                     loss = dict()
-                    loss['sequence(price)'] = 10 * self.cost['mse'](
+                    loss['sequence(price)'] = self.cost['mse'](
                         o['next(price)'][0:point,:,:], 
                         batch['sequence(price)']['future'][0:point,:,:]
                     )
                     loss['sequence(article_code)'] = self.cost['ce'](
-                        o['next(article_code)'][0:point,:].flatten(0,1), 
-                        batch['sequence(article_code)']['future'][0:point,:].flatten(0)
+                        o['next(article_code)'][0:point,:,:].flatten(0,1), 
+                        batch['sequence(article_code)']['future'][0:point,:].flatten(0,-1)
                     )
-                    loss['total'] = loss['sequence(price)'] + loss['sequence(article_code)']
+                    embedding = dict()
+                    embedding['target'] = batch['sequence(article_code)']['future'][0:point,:].flatten(0,-1)
+                    embedding['prediction'] = o['next(article_code)'][0:point,:].argmax(2).flatten(0,-1)
+                    embedding['label'] = (2 * (embedding['target']==embedding['prediction'])) - 1
+                    embedding['target'] = self.model.layer['suggestion'].layer['sequence'].layer['e1'](embedding['target'])
+                    embedding['prediction'] = self.model.layer['suggestion'].layer['sequence'].layer['e1'](embedding['prediction'])
+                    loss['embedding(article_code)'] = self.cost['c'](embedding['target'], embedding['prediction'], embedding['label'])
+                    pass
+
+                    loss['total'] = loss['sequence(price)'] + loss['sequence(article_code)'] + loss['embedding(article_code)']
+                    loss['total'].backward()
+                    self.optimizer.step()
                     pass
                 
                 ##  Loss value.
                 iteration['sequence(price) loss'] += [round(loss['sequence(price)'].item(), 3)]
                 iteration['sequence(article_code) loss'] += [round(loss['sequence(article_code)'].item(), 3)]
+                iteration['embedding(article_code) loss'] += [round(loss['embedding(article_code)'].item(), 3)]
                 iteration['total loss'] += [round(loss['total'].item(), 3)]
                 pass
 
@@ -161,10 +194,11 @@ class machine:
                 value = (
                     iteration['sequence(price) loss'][-1], 
                     iteration['sequence(article_code) loss'][-1], 
+                    iteration['embedding(article_code) loss'][-1],
                     iteration['total loss'][-1],
                     iteration['map@12 score'][-1]
                 )
-                message = "[validation] sequence(price) loss : {} | sequence(article_code) loss : {} | total loss : {} | map@12 score : {}".format(*value)
+                message = "[validation] sequence(price) loss : {} | sequence(article_code) loss : {} | embedding(article_code)loss : {} | total loss : {} | map@12 score : {}".format(*value)
                 progress.set_description(message)
                 pass
             

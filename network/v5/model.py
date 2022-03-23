@@ -370,7 +370,7 @@ class model(nn.Module):
 
     pass
 
-'day(1)', 'day(2)', 'day(3)', 'day(4)', 'day(5)', 'day(6)', 'day(7)', 'day(8)', 'day(9)', 'day(10)', 'day(11)', 'day(12)'
+# 'day(1)', 'day(2)', 'day(3)', 'day(4)', 'day(5)', 'day(6)', 'day(7)', 'day(8)', 'day(9)', 'day(10)', 'day(11)', 'day(12)'
 #         v = self.layer['f1'](x[0].unsqueeze(-1))
 #         _, (h, _) = self.layer['r1'](v, x[1])
 #         h = h.permute(1,0,2).flatten(1,-1)
