@@ -4,15 +4,15 @@ import data
 import network
 
 ##  Load all data table.
-table = data.table(source='preprocess(sample)')
-table.f1 = table.f1.loc[table.f1['seq_len']<100]
+table = data.table(source='preprocess')
+table.f1 = table.f1.loc[table.f1['seq_len']<10]
 
 fold = 20
 split = data.split(table=table.f1, method='fold', size=fold)
 
 ##  Each fold.
 score = {'train':[], "validation":[]}
-k = 0
+# k = 0
 for k in split.iterate():
 
     print("start fold {}".format(k))
@@ -30,7 +30,11 @@ for k in split.iterate():
     pass
 
     epoch = 10
-    e = 0
+    # e = 0
+    # batch = next(iter(loader.train))
+    # o = model(batch)
+    # o['embedding(article_code)'].shape
+    # batch['sequence(article_code)']['future'].shape
     for e in range(epoch):
 
         machine.learn(train=loader.train)

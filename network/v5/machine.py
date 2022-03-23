@@ -80,11 +80,10 @@ class machine:
                     batch['sequence(article_code)']['future'][0:point,:].flatten(0,-1)
                 )
                 embedding = dict()
-                embedding['target'] = batch['sequence(article_code)']['future'][0:point,:].flatten(0,-1)
-                embedding['prediction'] = o['next(article_code)'][0:point,:].argmax(2).flatten(0,-1)
-                embedding['label'] = (2 * (embedding['target']==embedding['prediction'])) - 1
-                embedding['target'] = self.model.layer['suggestion'].layer['sequence'].layer['e1'](embedding['target'])
-                embedding['prediction'] = self.model.layer['suggestion'].layer['sequence'].layer['e1'](embedding['prediction'])
+                embedding['prediction'] = o['embedding(article_code)'][0:point,:,:].flatten(0,1)
+                t = batch['sequence(article_code)']['future'][0:point,:].flatten(0,-1)
+                embedding['label'] = (2 * (t!=0)) - 1
+                embedding['target'] = self.model.layer['suggestion'].layer["sequence"].layer['e1'](t)
                 loss['embedding(article_code)'] = self.cost['c'](embedding['target'], embedding['prediction'], embedding['label'])
                 pass
 

@@ -120,7 +120,7 @@ class row(nn.Module):
         layer['e2'] = nn.Embedding(5, 25)
         layer['e3'] = nn.Embedding(352899, 256)
         layer['f2'] = nn.Sequential(
-            nn.Linear(128+256+16+25, 256), 
+            nn.Linear(128+256+16+25, 128), 
             nn.LeakyReLU(), 
             nn.Dropout(0.2)
         )
@@ -167,12 +167,12 @@ class sequence(nn.Module):
         pass
 
         ##  Sequence(article_code)
-        layer['e1'] = nn.Embedding(105542, 128)
-        layer['p1'] = nn.Embedding(2000, 128)
+        layer['e1'] = nn.Embedding(105542, 64)
+        layer['p1'] = nn.Embedding(2000, 64)
         layer['a1'] = nn.TransformerEncoder(
-            encoder_layer=nn.TransformerEncoderLayer(128, 4), num_layers=2, norm=None
+            encoder_layer=nn.TransformerEncoderLayer(64, 4), num_layers=2, norm=None
         )
-        layer['f4'] = nn.Sequential(nn.Linear(128, 128), nn.ReLU(), nn.Dropout(0.1))
+        layer['f4'] = nn.Sequential(nn.Linear(64, 64), nn.ReLU(), nn.Dropout(0.1))
         pass
 
         self.layer = nn.ModuleDict(layer)
@@ -219,11 +219,12 @@ class suggestion(nn.Module):
         layer['row'] = row()
         layer['sequence'] = sequence()
         layer['next(price)'] = nn.Sequential(
-            nn.Linear(256 + 32 + 128, 1)
+            nn.Linear(128 + 32 + 64, 1)
         )
         layer['next(article_code)'] = nn.Sequential(
-            nn.Linear(256 + 32 + 128, 105542)
+            nn.Linear(128 + 32 + 64, 105542)
         )
+        layer['embedding(article_code)'] = nn.Sequential(nn.Linear(128+32+64, 64), nn.Sigmoid())
         self.layer = nn.ModuleDict(layer)
         return
 
@@ -242,6 +243,7 @@ class suggestion(nn.Module):
         )
         cache['next(price)'] = self.layer['next(price)'](v)
         cache['next(article_code)'] = self.layer['next(article_code)'](v)
+        cache['embedding(article_code)'] = self.layer['embedding(article_code)'](v)
         y = cache
         return(y)
 
@@ -347,7 +349,7 @@ class model(nn.Module):
         pass
 
         ##  
-        for s in ['next(price)', 'next(article_code)']:
+        for s in ['next(price)', 'next(article_code)', 'embedding(article_code)']:
 
             l = [
                 cache['day(1)'][s],
