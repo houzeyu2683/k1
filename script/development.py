@@ -20,7 +20,7 @@ for k in split.iterate():
     dataset = data.dataset(train=split.train, validation=split.validation)
     pass
 
-    loader = data.loader(batch=2)
+    loader = data.loader(batch=36)
     loader.define(train=dataset.train, validation=dataset.validation)
     pass
 
@@ -37,7 +37,7 @@ for k in split.iterate():
     # batch['sequence(article_code)']['future'].shape
     for e in range(epoch):
 
-        machine.learn(train=loader.train)
+        machine.learn(train=loader.train,validation=loader.validation)
         machine.save(what='history')
         machine.save(what='checkpoint', mode='better')
         machine.update(what='checkpoint')
