@@ -101,6 +101,8 @@ class loader:
 
         h = 'history'
         f = 'future'
+        pass
+    
         s = 'sequence(price)'
         batch[s][h] = rnn.pad_sequence(batch[s][h], batch_first=False, padding_value=0)
         batch[s][f] = rnn.pad_sequence(batch[s][f], batch_first=False, padding_value=0)
@@ -127,7 +129,7 @@ class process:
     
     def prepare(self):
 
-        self.edge = random.randint(1, self.item['seq_len']-1)
+        self.edge = random.randint(0, self.item['query_length']-1)
         return
 
     def handle(self, step=''):
@@ -158,7 +160,8 @@ class process:
             '''
             v = self.item[["club_member_status", "fashion_news_frequency", "postal_code"]]
             v = torch.tensor(v).unsqueeze(1).type(torch.LongTensor)
-            output = v.split(1,0)
+            v = v.split(1,0)
+            output = v
             pass
 
         if(step=='sequence(price)'):
@@ -169,8 +172,8 @@ class process:
             return ((length,1),(length,1))
             '''
             line = [float(i) for i in self.item['price'].split()]
-            h = line[:self.edge]
-            f = line[self.edge:][:12]
+            h, f = line[:self.edge], [0.0] + line[self.edge:][:12]
+            if(h==[]): h += [0.0]
             history = torch.tensor(h).unsqueeze(1).type(torch.FloatTensor)
             future  = torch.tensor(f).unsqueeze(1).type(torch.FloatTensor)
             output = [history, future]
@@ -184,8 +187,8 @@ class process:
             return ((length,1),(length,1))
             '''
             line = [int(i) for i in self.item['article_code'].split()]
-            h = line[:self.edge]
-            f = line[self.edge:][:12] 
+            h, f = line[:self.edge], [1.0] + line[self.edge:][:12]
+            if(h==[]): h += [1.0]
             history = torch.tensor(h).unsqueeze(1).type(torch.LongTensor)
             future  = torch.tensor(f).unsqueeze(1).type(torch.LongTensor)
             output = [history, future]            

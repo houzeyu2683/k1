@@ -40,15 +40,15 @@ pass
 
 ##  針對 transaction 表進行前處理, 以用戶當作 row 來建構對應的標記與特徵序列.
 table.transaction['sales_channel_id'] = feature.label.encode(table.transaction['sales_channel_id']) + len(reservation)
-table.transaction['t_dat_delta'] = feature.label.encode(table.transaction['t_dat'])
+# table.transaction['t_dat_delta'] = feature.label.encode(table.transaction['t_dat'])
 table.transaction['price'] = 1 + (table.transaction['price'] / table.transaction['price'].max())
 cache.sequence = dict()
 pass
 
-v = 't_dat_delta'
-c = table.transaction.copy().astype(str)
-cache.sequence[v] = feature.sequence.flatten(table=c, key='customer_id', group=['customer_id', 't_dat'], variable=v)
-pass
+# v = 't_dat_delta'
+# c = table.transaction.copy().astype(str)
+# cache.sequence[v] = feature.sequence.flatten(table=c, key='customer_id', group=['customer_id', 't_dat'], variable=v)
+# pass
 
 v = 'price'
 c = table.transaction.copy().astype(str)
@@ -68,57 +68,6 @@ c = library.pandas.merge(
 ).copy().astype(str)
 cache.sequence[v] = feature.sequence.flatten(table=c, key='customer_id', group=['customer_id', 't_dat'], variable=v)
 pass
-
-
-
-
-# loop = ['article_code'] + [
-#     'product_code', 'prod_name', 'product_type_no',
-#     'product_type_name', 'product_group_name', 'graphical_appearance_no',
-#     'graphical_appearance_name', 'colour_group_code', 'colour_group_name',
-#     'perceived_colour_value_id', 'perceived_colour_value_name',
-#     'perceived_colour_master_id', 'perceived_colour_master_name',
-#     'department_no', 'department_name', 'index_code', 'index_name',
-#     'index_group_no', 'index_group_name', 'section_no', 'section_name',
-#     'garment_group_no', 'garment_group_name', 'detail_desc'
-# ]
-# row = {}
-# for l in loop:
-#     l = 'article_code'
-#     c = library.pandas.merge(table.transaction, cache.article[["article_id", l]], on="article_id", how='inner').copy()
-#     c[l] = c[l].astype(str)
-#     feature.sequence.flatten(table=c, key='customer_id', group=['customer_id', 't_dat'], variable=l)
-#     row[l] = c[['customer_id', 't_dat', l]].groupby(['customer_id', 't_dat'])[l].apply(" ".join).reset_index()
-#     row[l] = row[l][['customer_id', 't_dat', l]].groupby(['customer_id'])[l].apply(" ".join).reset_index()
-#     pass
-
-# for l in ['price', "sales_channel_id"]:
-
-#     table.transaction[l] = table.transaction[l].astype(str)    
-#     c = table.transaction[['customer_id', 't_dat', l]]
-#     c = c.groupby(['customer_id', 't_dat'])[l].apply(" ".join).reset_index()
-#     c = c[['customer_id', 't_dat', l]].groupby(['customer_id'])[l].apply(" ".join).reset_index()
-#     row[l] = c
-#     pass
-
-# def delta(x='[2019-09-23, 2019-09-23, 2019-09-24]'):
-
-#     x = x.split()
-#     y = []
-#     for i in range(len(x)):
-
-#         if(i==0): continue
-#         t = library.pandas.Timestamp(x[i]) - library.pandas.Timestamp(x[i-1])
-#         y += [str(t.days)]
-#         pass
-
-#     y = "-1 " + " ".join(y)
-#     return(y)
-
-# c = table.transaction[['customer_id', 't_dat']]
-# c = c.groupby(['customer_id'])['t_dat'].apply(" ".join).reset_index()
-# c['t_range'] = [delta(i) for i in c['t_dat']]
-# pass
 
 sequence = cache.sequence.values()
 cache.sequence = library.functools.reduce(lambda x,y: library.pandas.merge(left=x, right=y, on='customer_id', how='inner'), sequence)
@@ -141,15 +90,15 @@ pass
 
 ##  整合特徵.
 cache.f1 = library.pandas.merge(left=cache.customer, right=cache.sequence, on='customer_id', how='inner')
-cache.f1['t_dat_delta'] = cache.f1['t_dat_delta'].apply(lambda x: " ".join(x.split()[0:1] + x.split()))
-cache.f1['price'] = cache.f1['price'].apply(lambda x: " ".join(['0.0'] + x.split()))
-cache.f1['sales_channel_id'] = cache.f1['sales_channel_id'].apply(lambda x: " ".join(x.split()[0:1] + x.split()))
-cache.f1['article_code'] = cache.f1['article_code'].apply(lambda x: " ".join(['1'] + x.split()))
-cache.f1['seq_len'] = cache.f1['t_dat_delta'].apply(lambda x: len(x.split()))
+# cache.f1['t_dat_delta'] = cache.f1['t_dat_delta'].apply(lambda x: " ".join(x.split()[0:1] + x.split()))
+# cache.f1['price'] = cache.f1['price'].apply(lambda x: " ".join(['0.0'] + x.split()))
+# cache.f1['sales_channel_id'] = cache.f1['sales_channel_id'].apply(lambda x: " ".join(x.split()[0:1] + x.split()))
+# cache.f1['article_code'] = cache.f1['article_code'].apply(lambda x: " ".join(['1'] + x.split()))
+cache.f1['query_length'] = cache.f1['article_code'].apply(lambda x: len(x.split()))
 cache.save(cache.f1, 'f1.csv', 'csv')
 pass
 
-cache.customer['postal_code'].nunique()
+# cache.customer['postal_code'].nunique()
 
 # cache.f1['t_number']
 # cache.f1.keys()
