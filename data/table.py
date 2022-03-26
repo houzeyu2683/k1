@@ -7,7 +7,7 @@ from sklearn import preprocessing
 root = './resource/'
 class table:
     
-    def __init__(self, source=None):
+    def __init__(self, source=None, mode='default'):
 
         if(source=='kaggle'):
 
@@ -16,7 +16,8 @@ class table:
 
             ##  資料 transaction 表.
             path = os.path.join(root, source, 'csv', "transactions_train.csv")
-            self.transaction = pandas.read_csv(path, dtype={'article_id':str})
+            if(mode=='default'): self.transaction = pandas.read_csv(path, dtype={'article_id':str})
+            if(mode=='sample'): self.transaction = pandas.read_csv(path, dtype={'article_id':str}, nrows=400000)
             
             ##  資料 submission 表.
             path = os.path.join(root, source, 'csv', "sample_submission.csv")

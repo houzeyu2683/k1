@@ -6,8 +6,8 @@ import data
 
 ##  宣告暫存物件.
 ##  載入所有的表格資料.
-cache = feature.cache(storage='resource/preprocess(sample)')
-table = data.table(source='kaggle(sample)')
+cache = feature.cache(storage='resource/preprocess')
+table = data.table(source='kaggle')
 pass
 
 ##  針對 article 表進行前處理.

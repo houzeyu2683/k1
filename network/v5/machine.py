@@ -70,6 +70,7 @@ class machine:
 
                 likelihood = self.model(batch)
                 prediction = likelihood.argmax(2)
+                print(prediction)
                 truth = batch['sequence(article_code)'][f][1:,:]
                 pass
 

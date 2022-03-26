@@ -6,12 +6,17 @@ import numpy
 import pickle
 import pandas
 import json
+from sklearn import metrics
 
 class history:
 
-    epoch = []
-    loss = {'train':[], "validation":[]}
-    accuracy = {'train':[], "validation":[]}
+    def __init__(self):
+
+        self.epoch = []
+        self.loss   = {'train':[], "validation":[]}
+        self.metric = {'train':[], "validation":[]}
+        return
+
     pass
 
 class machine:
@@ -26,9 +31,10 @@ class machine:
     def prepare(self):
 
         self.cost       = torch.nn.CrossEntropyLoss(ignore_index=0)
-        self.optimizer  = torch.optim.Adam(self.model.parameters(), lr=1e-4, betas=(0.9, 0.98), eps=1e-9)
-        self.history    = history
+        self.optimizer  = torch.optim.Adam(self.model.parameters(), lr=1e-3, betas=(0.9, 0.98), eps=1e-9)
+        self.history    = history()
         self.checkpoint = 0
+        self.metric = metric(limit=12)
         os.makedirs(self.folder, exist_ok=True) if(self.folder) else None
         return
 
@@ -41,49 +47,139 @@ class machine:
 
             self.model = self.model.to(self.device)
             self.model.train()
-            iteration  = {'train loss':[]}
+            iteration  = {
+                'total loss':[],
+                'map@12 score':[]
+            }
             progress = tqdm.tqdm(train, leave=False)
             for batch in progress:
-
+                
                 self.model.zero_grad()
-                b = dict()
-                b['variable'] = batch['variable'].to(self.device)
-                b['sequence'] = batch['sequence'].to(self.device)
-                b['score']  = self.model(x = b['variable'], device=self.device)
-                loss = self.cost(b["score"], b['sequence'][0,:])
+                batch['vector(numeric)'] = batch['vector(numeric)'].to(self.device)
+                batch['vector(club_member_status)'] = batch['vector(club_member_status)'].to(self.device)
+                batch['vector(fashion_news_frequency)'] = batch['vector(fashion_news_frequency)'].to(self.device)
+                batch['vector(postal_code)'] = batch['vector(postal_code)'].to(self.device)
+                pass
+
+                h, f = 'history', 'future'
+                batch['sequence(price)'][h] = batch['sequence(price)'][h].to(self.device)
+                batch['sequence(price)'][f] = batch['sequence(price)'][f].to(self.device)
+                batch['sequence(article_code)'][h] = batch['sequence(article_code)'][h].to(self.device)
+                batch['sequence(article_code)'][f] = batch['sequence(article_code)'][f].to(self.device)
+                pass
+
+                likelihood = self.model(batch)
+                prediction = likelihood.argmax(2)
+                print(prediction)
+                truth = batch['sequence(article_code)'][f][1:,:]
+                pass
+
+                loss = 0.0
+                loss = self.cost(likelihood.flatten(0, 1), prediction.flatten())                
+                pass
+                
+                score = 0.0
+                pair = [i.flatten().tolist() for i in prediction.split(1,1)], [i.flatten().tolist() for i in truth.split(1,1)]
+                score = self.metric.compute(pair[0], pair[1])
+                pass
+
                 loss.backward()
                 self.optimizer.step()
-                iteration['train loss'] += [loss.item()]
-                progress.set_description("train loss : {}".format(round(iteration['train loss'][-1],3)))
+                pass
+                
+                iteration['total loss'] += [round(loss.item(), 3)]
+                iteration['map@12 score'] += [round(score,3)]
+                pass
+
+                value = (
+                    iteration['total loss'][-1],
+                    iteration['map@12 score'][-1]
+                )
+                message = "[train] total loss : {} | map@12 score : {}".format(*value)
+                progress.set_description(message)
                 pass
             
-            self.history.loss['train'] += [round(numpy.array(iteration['train loss']).mean(), 3)]
+            self.history.loss['train'] += [round(numpy.array(iteration['total loss']).mean(), 3)]
+            self.history.metric['train'] += [round(numpy.array(iteration['map@12 score']).mean(), 3)]
             pass
 
         if(validation):
 
             self.model = self.model.to(self.device)
             self.model.eval()
-            pass
-            
-            iteration  = {'validation loss':[]}
+            iteration  = {
+                "sequence(price) loss":[],
+                'sequence(article_code) loss':[],
+                'embedding(article_code) loss':[],
+                'total loss':[],
+                'map@12 score':[]
+            }
             progress = tqdm.tqdm(validation, leave=False)
             for batch in progress:
-
+                
                 with torch.no_grad():
 
-                    b = dict()
-                    b['variable'] = batch['variable'].to(self.device)
-                    b['sequence']  = batch['sequence'].to(self.device)
-                    b['score']  = self.model(x=b['variable'], device=self.device)
-                    loss = self.cost(b["score"], b['sequence'][0,:])
-                    iteration['validation loss'] += [loss.item()]
-                    progress.set_description("validation loss : {}".format(round(iteration['validation loss'][-1], 3)))
+                    batch['row(numeric)'] = batch['row(numeric)'].to(self.device)
+                    batch['row(category)'] = batch['row(category)'].to(self.device)
+                    batch['sequence(price)']['history'] = batch['sequence(price)']['history'].to(self.device)
+                    batch['sequence(price)']['future'] = batch['sequence(price)']['future'].to(self.device)
+                    batch['sequence(article_code)']['history'] = batch['sequence(article_code)']['history'].to(self.device)
+                    batch['sequence(article_code)']['future'] = batch['sequence(article_code)']['future'].to(self.device)
+                    pass
+
+                    o = self.model(batch)
+                    point = min(len(batch['sequence(article_code)']['future']), 12)
+                    pass
+
+                    loss = dict()
+                    loss['sequence(price)'] = self.cost['mse'](
+                        o['next(price)'][0:point,:,:], 
+                        batch['sequence(price)']['future'][0:point,:,:]
+                    )
+                    loss['sequence(article_code)'] = self.cost['ce'](
+                        o['next(article_code)'][0:point,:,:].flatten(0,1), 
+                        batch['sequence(article_code)']['future'][0:point,:].flatten(0,-1)
+                    )
+                    embedding = dict()
+                    embedding['prediction'] = o['embedding(article_code)'][0:point,:,:].flatten(0,1)
+                    t = batch['sequence(article_code)']['future'][0:point,:].flatten(0,-1)
+                    embedding['label'] = (2 * (t!=0)) - 1
+                    embedding['target'] = self.model.layer['suggestion'].layer["sequence"].layer['e1'](t)
+                    loss['embedding(article_code)'] = self.cost['c'](embedding['target'], embedding['prediction'], embedding['label'])
+                    pass
+
+                    loss['total'] = loss['sequence(price)'] + loss['sequence(article_code)'] + loss['embedding(article_code)']
                     pass
                 
-                continue
+                ##  Loss value.
+                iteration['sequence(price) loss'] += [round(loss['sequence(price)'].item(), 3)]
+                iteration['sequence(article_code) loss'] += [round(loss['sequence(article_code)'].item(), 3)]
+                iteration['embedding(article_code) loss'] += [round(loss['embedding(article_code)'].item(), 3)]
+                iteration['total loss'] += [round(loss['total'].item(), 3)]
+                pass
 
-            self.history.loss['validation'] += [round(numpy.array(iteration['validation loss']).mean(),3)]
+                ##  Metric value.
+                point = min(len(batch['sequence(article_code)']['future']), 12)
+                prediction = o['next(article_code)'][0:point,:,:].argmax(2).split(1, dim=1)
+                target = batch['sequence(article_code)']['future'][0:point,:].split(1, dim=1)
+                prediction = [i.squeeze(-1).tolist() for i in prediction]
+                target = [i.squeeze(-1).tolist() for i in target]
+                iteration['map@12 score'] += [round(self.metric.compute(prediction, target),3)]
+                pass
+
+                value = (
+                    iteration['sequence(price) loss'][-1], 
+                    iteration['sequence(article_code) loss'][-1], 
+                    iteration['embedding(article_code) loss'][-1],
+                    iteration['total loss'][-1],
+                    iteration['map@12 score'][-1]
+                )
+                message = "[validation] sequence(price) loss : {} | sequence(article_code) loss : {} | embedding(article_code)loss : {} | total loss : {} | map@12 score : {}".format(*value)
+                progress.set_description(message)
+                pass
+            
+            self.history.loss['validation'] += [round(numpy.array(iteration['total loss']).mean(), 3)]
+            self.history.metric['validation'] += [round(numpy.array(iteration['map@12 score']).mean(), 3)]
             pass
 
         return
@@ -93,252 +189,75 @@ class machine:
         if(what=='checkpoint'): self.checkpoint = self.checkpoint+1
         return
 
-    def save(self, what='history'):
+    def save(self, what='history', mode='default'):
 
         if(what=='history'):
 
             with open(os.path.join(self.folder, 'loss'), 'w') as paper: json.dump(self.history.loss, paper)
             pass
 
+            with open(os.path.join(self.folder, 'metric'), 'w') as paper: json.dump(self.history.metric, paper)
+            pass
+
         if(what=='checkpoint'):
 
-            path = os.path.join(self.folder, "model-{}.checkpoint".format(self.checkpoint))
-            with open(path, 'wb') as paper: pickle.dump(self.model, paper)
-            pass
+            if(mode=='default'):
+
+                path = os.path.join(self.folder, "model-{}.checkpoint".format(self.checkpoint))
+                with open(path, 'wb') as paper: pickle.dump(self.model, paper)
+                pass
+            
+            if(mode=='better'):
+
+                new = self.history.metric['validation'][-1]
+                before = max([0.0] + self.history.metric['validation'][:-1])
+                evolve = (new >= before)
+                if(evolve):
+
+                    print("new map@12 : {} >= before map@12 : {} | execute save model".format(new, before), end = '\n')
+                    path = os.path.join(self.folder, "better-model-{}.checkpoint".format(new))
+                    with open(path, 'wb') as paper: pickle.dump(self.model, paper)
+                    pass
+                
+                else:
+
+                    print("new map@12 : {} < before map@12 : {} | skip save model".format(new, before), end = '\n')
+                    pass
+
+                pass
 
         return
 
     pass
 
-    # def evaluate(self, loader):
+class metric:
 
-    #     self.model = self.model.to(self.device)
-    #     self.model.eval()
-    #     pass
-        
-    #     progress = tqdm.tqdm(loader, leave=False)
-    #     iteration = {'image':[], "target":[], "prediction":[]}
-    #     for index, batch in enumerate(progress, 0):
-            
-    #         with torch.no_grad():
+    def __init__(self, limit):
 
-    #             x = batch['image'].to(self.device)
-    #             prediction = self.model.predict(
-    #                 x=x, 
-    #                 device=self.device, 
-    #                 limit=50
-    #             )
-    #             target = batch['text'].squeeze().tolist()
-    #             pass
+        self.limit = limit
+        return
 
-    #             if(batch['item']['image'].item() not in iteration['image']): 
-                    
-    #                 iteration['image'] += [batch['item']['image'].item()]
-    #                 iteration['target'] += [[target]]
-    #                 iteration['prediction'] += [prediction]
-    #                 pass
+    def compute(self, prediction, target):
+
+        group = [prediction, target]
+        score = []
+        for prediction, target in zip(group[0], group[1]):
+
+            top = min(self.limit, len(target))
+            if(top<12): prediction = prediction[:top]
+            if(top==12): target = target[:top]
+            match = [1*(p==t) for p, t in zip(prediction, target)]
+            precision = []
+            for i, _ in enumerate(match):
                 
-    #             else:
+                p = sum(match[:i+1]) if(match[i]==1) else 0
+                precision += [p/(i+1)]
+                pass
 
-    #                 index = iteration['image'].index(batch['item']['image'].item())
-    #                 iteration['target'][index] += [target]
-    #                 pass
-                
-    #             pass
+            score += [sum(precision) / top]
+            pass
 
-    #         pass
-        
-    #     bleu = []
-    #     bleu += [round(corpus_bleu(iteration['target'], hypotheses=iteration['prediction'], weights=(1, 0, 0, 0)), 3)]
-    #     bleu += [round(corpus_bleu(iteration['target'], hypotheses=iteration['prediction'], weights=(0.5, 0.5, 0, 0)), 3)]
-    #     bleu += [round(corpus_bleu(iteration['target'], hypotheses=iteration['prediction'], weights=(0.33, 0.33, 0.33, 0)), 3)]
-    #     bleu += [round(corpus_bleu(iteration['target'], hypotheses=iteration['prediction'], weights=(0.25, 0.25, 0.25, 0.25)), 3)]  
-    #     return(bleu)
+        score = numpy.mean(score)
+        return(score)
 
-# s = corpus_bleu(list_of_references=[[[12,32,44,13], [12,32,22,13]], [[1,2,3,5], [5,4,3,2,1]]], hypotheses=[[12,32,44,13], [1,2,3,4,5]])
-# round(s,3)
-
-
-    # def evaluate(self, loader, name):
-
-    #     self.model = self.model.to(self.device)
-    #     self.model.eval()
-    #     pass
-        
-    #     iteration  = {'target':[], 'prediction':[]}
-    #     result = {'image':[], "text":[], "description":[]}
-    #     progress = tqdm.tqdm(loader, leave=False)
-    #     for _, batch in enumerate(progress, 1):
-            
-    #         batch['item'] = batch['item'].reset_index(drop=True)
-    #         for b in range(batch['size']):
-
-    #             with torch.no_grad():
-                    
-    #                 v = dict()
-    #                 v['x'] = batch['image'][b:b+1,:, :, :].to(self.device)
-    #                 v['prediction'] = self.model.predict(
-    #                     x=v['x'], 
-    #                     device=self.device, 
-    #                     limit=20
-    #                 )
-    #                 v['description'] = self.model.vocabulary.decode(token=v['prediction'], text=True)
-    #                 v['target'] = [filter(
-    #                     lambda x: (x!= self.model.vocabulary.index['<padding>']), 
-    #                     batch['text'][:,b].tolist()
-    #                 )]
-    #                 pass
-                
-    #             iteration['target'] += [v['target']]
-    #             iteration['prediction'] += [v['prediction']]
-    #             pass
-
-    #             result['image'] += [batch['item']['image'][b]]
-    #             result['text'] +=  [batch['item']['text'][b]]
-    #             result['description'] +=  [v['description']]
-    #             pass
-
-    #         pass
-        
-    #     score = round(corpus_bleu(iteration['target'], hypotheses=iteration['prediction']),3)
-    #     print('the gleu score {}'.format(score))
-    #     pass
-
-    #     location = os.path.join(self.folder, "{} result.csv".format(name))
-    #     pandas.DataFrame(result).to_csv(location, index=False)
-    #     return
-
-    # def save(self, what='checkpoint'):
-
-    #     ##  Save the checkpoint.
-    #     if(what=='checkpoint'):
-
-    #         path = os.path.join(self.folder, "model-" + str(self.checkpoint) + ".checkpoint")
-    #         with open(path, 'wb') as data:
-
-    #             pickle.dump(self.model, data)
-    #             pass
-
-    #         print("save the weight of model to {}".format(path))
-    #         pass
-
-    #     if(what=='history'):
-
-    #         history = pandas.DataFrame(self.track)
-    #         history.to_csv(
-    #             os.path.join(self.folder, "history.csv"), 
-    #             index=False
-    #         )
-    #         pass
-
-    #         # path = os.path.join(self.folder, "history.html")
-    #         figure = go.Figure()
-    #         figure.add_trace(
-    #             go.Scatter(
-    #                 x=history['epoch'], y=history['train loss'],
-    #                 mode='lines+markers',
-    #                 name='train loss',
-    #                 line_color="blue"
-    #             )
-    #         )
-    #         figure.add_trace(
-    #             go.Scatter(
-    #                 x=history['epoch'], y=history['validation loss'],
-    #                 mode='lines+markers',
-    #                 name='validation loss',
-    #                 line_color="green"
-    #             )
-    #         )
-    #         figure.write_html(os.path.join(self.folder, "history.html"))
-    #         pass
-
-    #     return
-
-    # def update(self, what='checkpoint'):
-
-    #     if(what=='checkpoint'): self.checkpoint = self.checkpoint + 1
-    #     return
-
-    # def load(self, path, what='model'):
-
-    #     if(what=='model'):
-
-    #         with open(path, 'rb') as paper:
-                
-    #             self.model = pickle.load(paper)
-
-    #         print('load model successfully')
-    #         pass
-
-    #     return
-        
-    # pass
-
-
-
-
-
-
-    # def evaluate(self, train=None, validation=None):
-
-    #     ################################################################################
-    #     ##  On train.
-    #     ################################################################################
-    #     self.model = self.model.to(self.device)
-    #     self.model.eval()
-    #     pass
-        
-    #     record  = {'train edit distance' : []}
-    #     progress = tqdm.tqdm(train, leave=False)
-    #     for batch in progress:
-
-    #         with torch.no_grad():
-                
-    #             value = {}
-    #             value['image'] = batch['image'].to(self.device)
-    #             value['text']  = batch['text'].to(self.device)
-    #             for i in range(batch['size']):
-
-    #                 prediction = self.model.autoregressive(image=batch['image'][i:i+1,:,:,:], device=self.device, limit=20)
-    #                 prediction = self.model.vocabulary.reverse(x=prediction)
-    #                 target = batch['item'].iloc[i]["text"]
-    #                 record['train edit distance'] += [editdistance.eval(prediction, target)]
-    #                 pass
-
-    #             pass
-            
-    #         pass
-
-    #     self.history['train edit distance'] += [numpy.array(record['train edit distance']).mean()]
-    #     pass
-    
-    #     ################################################################################
-    #     ##  On validation.
-    #     ################################################################################
-    #     self.model = self.model.to(self.device)
-    #     self.model.eval()
-    #     pass
-        
-    #     record  = {'validation edit distance' : []}
-    #     progress = tqdm.tqdm(validation, leave=False)
-    #     for batch in progress:
-
-    #         with torch.no_grad():
-                
-    #             value = {}
-    #             value['image'] = batch['image'].to(self.device)
-    #             value['text']  = batch['text'].to(self.device)
-    #             for i in range(batch['size']):
-
-    #                 prediction = self.model.autoregressive(image=batch['image'][i:i+1,:,:,:], device=self.device, limit=20)
-    #                 prediction = self.model.vocabulary.reverse(x=prediction)
-    #                 target = batch['item'].iloc[i]["text"]
-    #                 record['validation edit distance'] += [editdistance.eval(prediction, target)]
-    #                 pass
-
-    #             pass
-            
-    #         pass
-
-    #     self.history['validation edit distance'] += [numpy.array(record['validation edit distance']).mean()]
-    #     return
+    pass
