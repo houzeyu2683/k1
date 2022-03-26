@@ -1,9 +1,9 @@
 
 from sklearn import preprocessing
 
-class category:
+class label:
 
-    def encode(x='pandas column series'):
+    def encode(x='[a, c, c, b]'):
 
         engine = preprocessing.LabelEncoder()
         engine.fit(x)
@@ -11,4 +11,3 @@ class category:
         return(y)
 
     pass
-

@@ -30,7 +30,7 @@ class machine:
 
     def prepare(self):
 
-        self.cost       = {"ce":torch.nn.CrossEntropyLoss(ignore_index=0), "mse" : torch.nn.MSELoss(), 'c' : torch.nn.CosineEmbeddingLoss()}
+        self.cost       = torch.nn.CrossEntropyLoss(ignore_index=0)
         self.optimizer  = torch.optim.Adam(self.model.parameters(), lr=1e-3, betas=(0.9, 0.98), eps=1e-9)
         self.history    = history()
         self.checkpoint = 0
@@ -48,9 +48,6 @@ class machine:
             self.model = self.model.to(self.device)
             self.model.train()
             iteration  = {
-                "sequence(price) loss":[],
-                'sequence(article_code) loss':[],
-                'embedding(article_code) loss':[],
                 'total loss':[],
                 'map@12 score':[]
             }
@@ -58,64 +55,46 @@ class machine:
             for batch in progress:
                 
                 self.model.zero_grad()
-                batch['row(numeric)'] = batch['row(numeric)'].to(self.device)
-                batch['row(category)'] = batch['row(category)'].to(self.device)
-                batch['sequence(price)']['history'] = batch['sequence(price)']['history'].to(self.device)
-                batch['sequence(price)']['future'] = batch['sequence(price)']['future'].to(self.device)
-                batch['sequence(article_code)']['history'] = batch['sequence(article_code)']['history'].to(self.device)
-                batch['sequence(article_code)']['future'] = batch['sequence(article_code)']['future'].to(self.device)
+                batch['vector(numeric)'] = batch['vector(numeric)'].to(self.device)
+                batch['vector(club_member_status)'] = batch['vector(club_member_status)'].to(self.device)
+                batch['vector(fashion_news_frequency)'] = batch['vector(fashion_news_frequency)'].to(self.device)
+                batch['vector(postal_code)'] = batch['vector(postal_code)'].to(self.device)
                 pass
 
-                o = self.model(batch)
-                point = min(len(batch['sequence(article_code)']['future']), 12)
+                h, f = 'history', 'future'
+                batch['sequence(price)'][h] = batch['sequence(price)'][h].to(self.device)
+                batch['sequence(price)'][f] = batch['sequence(price)'][f].to(self.device)
+                batch['sequence(article_code)'][h] = batch['sequence(article_code)'][h].to(self.device)
+                batch['sequence(article_code)'][f] = batch['sequence(article_code)'][f].to(self.device)
                 pass
 
-                loss = dict()
-                loss['sequence(price)'] = self.cost['mse'](
-                    o['next(price)'][0:point,:,:], 
-                    batch['sequence(price)']['future'][0:point,:,:]
-                )
-                loss['sequence(article_code)'] = self.cost['ce'](
-                    o['next(article_code)'][0:point,:,:].flatten(0,1), 
-                    batch['sequence(article_code)']['future'][0:point,:].flatten(0,-1)
-                )
-                embedding = dict()
-                embedding['prediction'] = o['embedding(article_code)'][0:point,:,:].flatten(0,1)
-                t = batch['sequence(article_code)']['future'][0:point,:].flatten(0,-1)
-                embedding['label'] = (2 * (t!=0)) - 1
-                embedding['target'] = self.model.layer['suggestion'].layer["sequence"].layer['e1'](t)
-                loss['embedding(article_code)'] = self.cost['c'](embedding['target'], embedding['prediction'], embedding['label'])
+                likelihood = self.model(batch)
+                prediction = likelihood.argmax(2)
+                truth = batch['sequence(article_code)'][f][1:,:]
                 pass
 
-                loss['total'] = loss['sequence(price)'] + loss['sequence(article_code)'] + loss['embedding(article_code)']
-                loss['total'].backward()
+                loss = 0.0
+                loss = self.cost(likelihood.flatten(0, 1), prediction.flatten())                
+                pass
+                
+                score = 0.0
+                pair = [i.flatten().tolist() for i in prediction.split(1,1)], [i.flatten().tolist() for i in truth.split(1,1)]
+                score = self.metric.compute(pair[0], pair[1])
+                pass
+
+                loss.backward()
                 self.optimizer.step()
                 pass
                 
-                ##  Loss value.
-                iteration['sequence(price) loss'] += [round(loss['sequence(price)'].item(), 3)]
-                iteration['sequence(article_code) loss'] += [round(loss['sequence(article_code)'].item(), 3)]
-                iteration['embedding(article_code) loss'] += [round(loss['embedding(article_code)'].item(), 3)]
-                iteration['total loss'] += [round(loss['total'].item(), 3)]
-                pass
-
-                ##  Metric value.
-                point = min(len(batch['sequence(article_code)']['future']), 12)
-                prediction = o['next(article_code)'][0:point,:,:].argmax(2).split(1, dim=1)
-                target = batch['sequence(article_code)']['future'][0:point,:].split(1, dim=1)
-                prediction = [i.squeeze(-1).tolist() for i in prediction]
-                target = [i.squeeze(-1).tolist() for i in target]
-                iteration['map@12 score'] += [round(self.metric.compute(prediction, target),3)]
+                iteration['total loss'] += [round(loss.item(), 3)]
+                iteration['map@12 score'] += [round(score,3)]
                 pass
 
                 value = (
-                    iteration['sequence(price) loss'][-1], 
-                    iteration['sequence(article_code) loss'][-1], 
-                    iteration['embedding(article_code) loss'][-1],
                     iteration['total loss'][-1],
                     iteration['map@12 score'][-1]
                 )
-                message = "[train] sequence(price) loss : {} | sequence(article_code) loss : {} | embedding(article_code)loss : {} | total loss : {} | map@12 score : {}".format(*value)
+                message = "[train] total loss : {} | map@12 score : {}".format(*value)
                 progress.set_description(message)
                 pass
             
