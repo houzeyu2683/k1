@@ -1,21 +1,35 @@
 
-##  套件.
+##  載入套件.
 import feature
 import library
 import data
 
-##  宣告暫存物件.
-##  載入所有的表格資料.
+##  載入資料.
+table = data.table(source='kaggle', mode='sample')
+pass
+
+##  初步清理.
+table.article["detail_desc"] = table.article["detail_desc"].fillna("missing value")
+table.customer['FN'] = table.customer['FN'].fillna(0.0)
+table.customer['Active'] = table.customer['Active'].fillna(0.0)
+table.customer['club_member_status'] = table.customer['club_member_status'].fillna("MISS")
+table.customer['fashion_news_frequency'] = table.customer['fashion_news_frequency'].fillna("MISS")
+table.customer['age'] = table.customer['age'].fillna(36.0)
+pass
+
+##  
 cache = feature.cache(storage='resource/preprocess')
-table = data.table(source='kaggle')
 pass
 
 ##  針對 article 表進行前處理.
-table.article["detail_desc"] = table.article["detail_desc"].fillna("missing value")
-reservation = ['<padding>', "<history>", "<future>"]
-table.article['article_code'] = feature.label.encode(table.article['article_id']) + len(reservation)
+table.article['article_code'] = table.article['article_id']
+reservation = library.pandas.DataFrame(columns=table.article.columns)
+reservation.loc[0] = 0
+reservation.loc[1] = 1
+reservation.loc[2] = 2
+reservation['article_id'] = ['<padding>', "<start>", "<end>"]
 loop = [
-    'product_code', 'prod_name', 'product_type_no',
+    'article_code', 'product_code', 'prod_name', 'product_type_no',
     'product_type_name', 'product_group_name', 'graphical_appearance_no',
     'graphical_appearance_name', 'colour_group_code', 'colour_group_name',
     'perceived_colour_value_id', 'perceived_colour_value_name',
@@ -29,35 +43,32 @@ for l in loop:
     table.article[l] = feature.label.encode(table.article[l]) + len(reservation)
     pass
 
-default = library.pandas.DataFrame(columns=table.article.columns)
-default.loc[0] = 0
-default.loc[1] = 1
-default.loc[2] = 2
-default['article_id'] = reservation
-cache.article = library.pandas.concat([default, table.article]).reset_index(drop=True)
+cache.article = library.pandas.concat([reservation, table.article]).reset_index(drop=True)
 cache.save(what=cache.article, file='article.csv', format='csv')
 pass
 
 ##  針對 transaction 表進行前處理, 以用戶當作 row 來建構對應的標記與特徵序列.
+table.transaction['date_code'] = feature.label.encode(table.transaction['t_dat']) + len(reservation)
 table.transaction['sales_channel_id'] = feature.label.encode(table.transaction['sales_channel_id']) + len(reservation)
-# table.transaction['t_dat_delta'] = feature.label.encode(table.transaction['t_dat'])
 table.transaction['price'] = 1 + (table.transaction['price'] / table.transaction['price'].max())
-cache.sequence = dict()
 pass
 
-# v = 't_dat_delta'
-# c = table.transaction.copy().astype(str)
-# cache.sequence[v] = feature.sequence.flatten(table=c, key='customer_id', group=['customer_id', 't_dat'], variable=v)
-# pass
+sequence = dict()
+pass
 
 v = 'price'
 c = table.transaction.copy().astype(str)
-cache.sequence[v] = feature.sequence.flatten(table=c, key='customer_id', group=['customer_id', 't_dat'], variable=v)
+sequence[v] = feature.sequence.flatten(table=c, key='customer_id', group=['customer_id', 't_dat'], variable=v)
 pass
 
 v = 'sales_channel_id'
 c = table.transaction.copy().astype(str)
-cache.sequence[v] = feature.sequence.flatten(table=c, key='customer_id', group=['customer_id', 't_dat'], variable=v)
+sequence[v] = feature.sequence.flatten(table=c, key='customer_id', group=['customer_id', 't_dat'], variable=v)
+pass
+
+v = 'date_code'
+c = table.transaction.copy().astype(str)
+sequence[v] = feature.sequence.flatten(table=c, key='customer_id', group=['customer_id', 't_dat'], variable=v)
 pass
 
 v = 'article_code'
@@ -66,20 +77,19 @@ c = library.pandas.merge(
     cache.article[["article_id", v]], 
     on="article_id", how='inner'
 ).copy().astype(str)
-cache.sequence[v] = feature.sequence.flatten(table=c, key='customer_id', group=['customer_id', 't_dat'], variable=v)
+sequence[v] = feature.sequence.flatten(table=c, key='customer_id', group=['customer_id', 't_dat'], variable=v)
 pass
 
-sequence = cache.sequence.values()
-cache.sequence = library.functools.reduce(lambda x,y: library.pandas.merge(left=x, right=y, on='customer_id', how='inner'), sequence)
+sequence = sequence.values()
+sequence = library.functools.reduce(
+    lambda x,y: library.pandas.merge(left=x, right=y, on='customer_id', how='inner'), 
+    sequence
+)
+cache.sequence = sequence
 cache.save(what=cache.sequence, file='sequence.csv', format='csv')
 pass
 
 ##  針對 customer 表進行前處理.
-table.customer['FN'] = table.customer['FN'].fillna(0.0)
-table.customer['Active'] = table.customer['Active'].fillna(0.0)
-table.customer['club_member_status'] = table.customer['club_member_status'].fillna("MISS")
-table.customer['fashion_news_frequency'] = table.customer['fashion_news_frequency'].fillna("MISS")
-table.customer['age'] = table.customer['age'].fillna(36.0)
 table.customer['club_member_status'] = feature.label.encode(table.customer['club_member_status']) + 0
 table.customer['fashion_news_frequency'] = feature.label.encode(table.customer['fashion_news_frequency']) + 0
 table.customer['age'] = table.customer['age'] / 100
@@ -90,61 +100,6 @@ pass
 
 ##  整合特徵.
 cache.f1 = library.pandas.merge(left=cache.customer, right=cache.sequence, on='customer_id', how='inner')
-# cache.f1['t_dat_delta'] = cache.f1['t_dat_delta'].apply(lambda x: " ".join(x.split()[0:1] + x.split()))
-# cache.f1['price'] = cache.f1['price'].apply(lambda x: " ".join(['0.0'] + x.split()))
-# cache.f1['sales_channel_id'] = cache.f1['sales_channel_id'].apply(lambda x: " ".join(x.split()[0:1] + x.split()))
-# cache.f1['article_code'] = cache.f1['article_code'].apply(lambda x: " ".join(['1'] + x.split()))
-cache.f1['query_length'] = cache.f1['article_code'].apply(lambda x: len(x.split()))
+cache.f1['trans_length'] = cache.f1['date_code'].apply(lambda x: len(x.split()))
 cache.save(cache.f1, 'f1.csv', 'csv')
 pass
-
-# cache.customer['postal_code'].nunique()
-
-# cache.f1['t_number']
-# cache.f1.keys()
-# 't_dat', 'price', 'sales_channel_id', 'article_code'
-
-# ##  整合類別種類.
-# cache.embedding = dict()
-# loop = ['postal_code'] + ['article_code'] +[
-#     'product_code', 'prod_name', 
-#     'product_type_no', 'product_type_name',
-#     'product_group_name', 'graphical_appearance_no',
-#     'graphical_appearance_name', 'colour_group_code', 
-#     'colour_group_name', 'perceived_colour_value_id', 
-#     'perceived_colour_value_name', 'perceived_colour_master_id', 
-#     'perceived_colour_master_name', 'department_no', 
-#     'department_name', 'index_code', 
-#     'index_name', 'index_group_no', 
-#     'index_group_name', 'section_no', 
-#     'section_name', 'garment_group_no', 
-#     'garment_group_name', 'detail_desc'
-# ] + ['sales_channel_id']
-# for l in loop:
-
-#     if(l=="postal_code"):
-
-#         v = cache.customer[l].astype(int)
-#         pass
-
-#     elif(l=="sales_channel_id"):
-
-#         v = [0,1,2] + [int(j) for i in cache.f1['sales_channel_id'] for j in i.split()]
-#         v = library.pandas.Series(v)
-#         pass
-
-#     else:
-
-#         v = cache.article[l].astype(int)
-#         pass
-    
-#     s = (
-#         min(v),
-#         max(v), 
-#         v.nunique()
-#     )
-#     cache.embedding[l] = ["(min:{},max:{},unique:{})".format(s[0], s[1], s[2])]
-#     pass
-
-# cache.embedding = library.pandas.DataFrame(cache.embedding)
-# cache.save(cache.embedding, 'embedding.csv', 'csv')

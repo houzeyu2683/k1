@@ -55,31 +55,32 @@ class machine:
             for batch in progress:
                 
                 self.model.zero_grad()
-                batch['vector(numeric)'] = batch['vector(numeric)'].to(self.device)
-                batch['vector(club_member_status)'] = batch['vector(club_member_status)'].to(self.device)
-                batch['vector(fashion_news_frequency)'] = batch['vector(fashion_news_frequency)'].to(self.device)
-                batch['vector(postal_code)'] = batch['vector(postal_code)'].to(self.device)
+                batch['numeric'] = batch['numeric'].to(self.device)
+                batch['club_member_status'] = batch['club_member_status'].to(self.device)
+                batch['fashion_news_frequency'] = batch['fashion_news_frequency'].to(self.device)
+                batch['postal_code'] = batch['postal_code'].to(self.device)
                 pass
 
-                h, f = 'history', 'future'
-                batch['sequence(price)'][h] = batch['sequence(price)'][h].to(self.device)
-                batch['sequence(price)'][f] = batch['sequence(price)'][f].to(self.device)
-                batch['sequence(article_code)'][h] = batch['sequence(article_code)'][h].to(self.device)
-                batch['sequence(article_code)'][f] = batch['sequence(article_code)'][f].to(self.device)
+                s, h, f = ["article_code"], 'history', 'future'
+                batch[s[0]][h] = batch[s[0]][h].to(self.device)
+                batch[s[0]][f] = batch[s[0]][f].to(self.device)
                 pass
 
                 likelihood = self.model(batch)
-                prediction = likelihood.argmax(2)
-                print(prediction)
-                truth = batch['sequence(article_code)'][f][1:,:]
+                probability = likelihood.flatten(0, 1)
+                truth = batch[s[0]][f][1:,:].flatten(0, 1)
+                # print(probability)
+                # print(truth)
                 pass
 
                 loss = 0.0
-                loss = self.cost(likelihood.flatten(0, 1), prediction.flatten())                
+                loss = self.cost(probability, truth)                
                 pass
                 
                 score = 0.0
-                pair = [i.flatten().tolist() for i in prediction.split(1,1)], [i.flatten().tolist() for i in truth.split(1,1)]
+                pair = [] 
+                pair += [[i.squeeze(1).argmax(1).tolist() for i in likelihood.split(1,1)]]
+                pair += [[i.squeeze(1).tolist() for i in batch[s[0]][f][1:,:].split(1, 1)]]
                 score = self.metric.compute(pair[0], pair[1])
                 pass
 
@@ -88,7 +89,7 @@ class machine:
                 pass
                 
                 iteration['total loss'] += [round(loss.item(), 3)]
-                iteration['map@12 score'] += [round(score,3)]
+                iteration['map@12 score'] += [round(score, 3)]
                 pass
 
                 value = (

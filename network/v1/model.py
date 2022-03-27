@@ -5,12 +5,13 @@ from torch import nn
 
 class constant:
 
-    version = '4.0.0'
+    version = '1.0.0'
     embedding = {
-        'club_member_status':4,
-        "fashion_news_frequency":5,
-        "postal_code":352899,
-        "article_code":105545, 
+        'club_member_status' : 4,
+        "fashion_news_frequency" : 5,
+        "postal_code" : 352899,
+        "article_code" : 105545, 
+        'position' : 2000
         # "t_dat_delta":733,
         # 'article_code_delta':4,
     }
@@ -50,59 +51,24 @@ class vector(nn.Module):
 
         super(vector, self).__init__()
         layer = dict()
-        l = 'default(f1)'
-        layer[l] = nn.Sequential(
-            nn.Linear(3, 64), nn.LeakyReLU(), nn.Dropout(0.2)
-        )
-        pass
-
-        l = 'club_member_status(e1)'
-        layer[l] = nn.Embedding(constant.embedding['club_member_status'], 32)
-        pass
-
-        l = 'fashion_news_frequency(e1)'
-        layer[l] = nn.Embedding(constant.embedding['fashion_news_frequency'], 32)
-        pass
-
-        l = 'postal_code(e1)'
-        layer[l] = nn.Embedding(constant.embedding['postal_code'], 128)
-        pass
-
-        l = 'default(f2)'
-        layer[l] = nn.Sequential(
-            nn.Linear(64+32+32+128, 64), 
-            nn.Tanh(), 
-            nn.Dropout(0.2)
-        )
-        pass
-
+        layer['numeric(1)'] = nn.Sequential(nn.Linear(3, 64), nn.LeakyReLU(), nn.Dropout(0.2))
+        layer['club_member_status(1)'] = nn.Embedding(constant.embedding['club_member_status'], 32)
+        layer['fashion_news_frequency(1)'] = nn.Embedding(constant.embedding['fashion_news_frequency'], 32)
+        layer["postal_code(1)"] = nn.Embedding(constant.embedding['postal_code'], 128)
+        layer["core(1)"] = nn.Sequential(nn.Linear(64+32+32+128, 64), nn.ReLU(), nn.Dropout(0.2))
         self.layer = nn.ModuleDict(layer)
         return
 
     def forward(self, b='batch'):
 
-        '''
-        >>> batch['vector(numeric)'].shape
-        torch.Size([7, 3])
-        >>> batch['vector(club_member_status)'].shape
-        torch.Size([1, 7])
-        >>> batch['vector(fashion_news_frequency)'].shape
-        torch.Size([1, 7])
-        >>> batch['vector(postal_code)'].shape
-        torch.Size([1, 7])
-        '''
-        v = []
-        l = 'default(f1)'
-        v += [self.layer[l](b["vector(numeric)"])]
-        l = 'club_member_status(e1)'
-        v += [self.layer[l](b["vector(club_member_status)"]).squeeze(0)]
-        l = 'fashion_news_frequency(e1)'
-        v += [self.layer[l](b["vector(fashion_news_frequency)"]).squeeze(0)]
-        l = 'postal_code(e1)'
-        v += [self.layer[l](b["vector(postal_code)"]).squeeze(0)]
+        v = [
+            self.layer["numeric(1)"](b["numeric"]),
+            self.layer["club_member_status(1)"](b["club_member_status"]).squeeze(0),
+            self.layer["fashion_news_frequency(1)"](b["fashion_news_frequency"]).squeeze(0),
+            self.layer["postal_code(1)"](b["postal_code"]).squeeze(0)
+        ]
         v = torch.cat(v, 1)
-        l = 'default(f2)'
-        y = self.layer[l](v)
+        y = self.layer['core(1)'](v)
         return(y)
 
     pass
@@ -113,54 +79,70 @@ class sequence(nn.Module):
 
         super(sequence, self).__init__()
         layer = dict()
-        pass
-    
-        encoder = nn.TransformerEncoderLayer(1, 1)
-        layer['price(a1)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=1, norm=None)
-        pass
-
-        layer['article_code(e1)'] = nn.Embedding(constant.embedding['article_code'], 256)
+        layer['article_code(1)'] = nn.Embedding(constant.embedding['article_code'], 256)
+        layer['article_code(2)'] = nn.Embedding(constant.embedding['position'], 256)
         encoder = nn.TransformerEncoderLayer(256, 8)
-        layer['article_code(a1)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=4, norm=None)
-        pass
-
-        layer['default(f1)'] = nn.Sequential(nn.Linear(1+256, 64), nn.ReLU(), nn.Dropout(0.2))
-        encoder = nn.TransformerEncoderLayer(64, 8)
-        layer['default(a1)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=2, norm=None)
-        layer['default(f2)'] = nn.Sequential(nn.Linear(64, 256), nn.ReLU())
-        pass
-
+        layer['article_code(3)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=4, norm=None)
         self.layer = nn.ModuleDict(layer)
         return
 
     def forward(self, b='batch'):
 
-        '''
-        >>> batch['sequence(price)']['history'].shape
-        torch.Size([3, 7, 1])
-        >>> batch['sequence(article_code)']['history'].shape
-        torch.Size([3, 7])
-        >>> batch['sequence(t_dat_delta)']['history'].shape
-        torch.Size([3, 7])
-        >>> batch['sequence(article_code_delta)']['history'].shape
-        torch.Size([3, 7])
-        '''
-        v = {}
-        l = "sequence(price)"
-        v[l] = self.layer['price(a1)'](b[l]['history'])
+        v = dict()
+        s, h, f = "article_code", 'history', 'future'
+        v[s] = dict()
+        e = self.layer['article_code(1)'](b[s][h])
+        p = self.layer['article_code(2)'](position.encode(b[s][h]))
+        v[s][h] = self.layer['article_code(3)'](src=p+e, mask=None, src_key_padding_mask=mask.padding(b[s][h], 0))
+        e = self.layer['article_code(1)'](b[s][f])
+        p = self.layer['article_code(2)'](position.encode(b[s][f]))
+        v[s][f] = p + e
         pass
 
-        l = 'sequence(article_code)'
-        v[l] = self.layer['article_code(e1)'](b[l]['history'])
-        pass
-        
-        v = torch.cat([i for i in v.values()], 2)
-        v = self.layer["default(f1)"](v)
-        v = v + self.layer["default(a1)"](v)
-        v = self.layer['default(f2)'](v)
-        y = v  ##  (length, batch, 256)
+        y = v
         return(y)
     
+    pass
+
+class fusion(nn.Module):
+
+    def __init__(self):
+
+        super(fusion, self).__init__()
+        layer = dict()
+        layer['vector'] = vector()
+        layer['sequence'] = sequence()
+        encoder = nn.TransformerEncoderLayer(256+64, 2)
+        layer['core(1)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=2, norm=None)
+        layer['core(2)'] = nn.Sequential(nn.Linear(256+64, 256), nn.ReLU(), nn.Dropout(0.2))
+        layer['core(3)'] = nn.Sequential(nn.Linear(256, 256), nn.ReLU())
+        self.layer = nn.ModuleDict(layer)    
+        return
+    
+    def forward(self, b='batch'):
+
+        vector = self.layer['vector'](b)
+        sequence = self.layer['sequence'](b)
+        pass
+
+        s, h, _ = ['article_code'], 'history', 'future'
+        l = range(b[s[0]]['length'][h])
+        v = torch.cat([vector.unsqueeze(0) for _ in l], 0)
+        pass
+
+        c = torch.cat([sequence[s[0]][h], v], 2)
+        pass
+
+        m = []
+        m += [self.layer['core(1)'](c)]
+        m += [self.layer['core(2)'](m[0])]
+        m += [self.layer['core(3)'](m[1])]
+        memory = m[1] + m[2]
+        pass
+
+        y = vector, sequence, memory
+        return(y)
+
     pass
 
 class suggestion(nn.Module):
@@ -169,168 +151,200 @@ class suggestion(nn.Module):
 
         super(suggestion, self).__init__()
         layer = dict()
-        layer['vector'] = vector()
-        layer['sequence'] = sequence()
-        layer['default(f1)'] = nn.Sequential(nn.Linear(320, 256), nn.ReLU(), nn.Dropout(0.2))
-        encoder = nn.TransformerEncoderLayer(256, 2)
-        layer['default(a1)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=2, norm=None)
+        layer['fusion'] = fusion()
         decoder = nn.TransformerDecoderLayer(256, 2)
-        layer['default(a2)'] = nn.TransformerDecoder(decoder_layer=decoder, num_layers=2, norm=None)
-        layer['default(f2)'] = nn.Sequential(nn.Linear(256, constant.embedding['article_code']), nn.ReLU(), nn.Softmax(2))
+        layer['article_code(1)'] = nn.TransformerDecoder(decoder_layer=decoder, num_layers=2, norm=None)
+        layer['article_code(2)'] = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(0.2))
+        layer['article_code(3)'] = nn.Sequential(nn.Linear(256, constant.embedding['article_code']), nn.ReLU())
         self.layer = nn.ModuleDict(layer)
         return
 
     def forward(self, b='batch'):
 
-        # cache = dict()
-        v = self.layer['vector'](b)
-        s = self.layer['sequence'](b)
-        pass
-
-        l = range(len(s))
-        v = torch.cat([v.unsqueeze(0) for _ in l], 0)
-        m = self.layer['default(f1)'](torch.cat([s, v], 2))
-        m = self.layer['default(a1)'](m)
-        pass
-
-        f = b['sequence(article_code)']['future'][:-1,:]
-        f = self.layer['default(a2)'](
-            tgt = self.layer['sequence'].layer['article_code(e1)'](f), 
-            memory = m, 
-            tgt_mask = mask.sequence(f, True), 
+        _, sequence, memory = self.layer['fusion'](b)
+        s, _, f = ['article_code'], 'history', 'future'
+        code = self.layer['article_code(1)'](
+            tgt = sequence[s[0]][f][:-1,:,:], 
+            memory = memory, 
+            tgt_mask = mask.sequence(b[s[0]]['future'][:-1,:], True), 
             memory_mask = None, 
-            tgt_key_padding_mask = mask.padding(f, 0), 
+            tgt_key_padding_mask = mask.padding(b[s[0]]['future'][:-1,:], 0), 
             memory_key_padding_mask = None
         )
-        pass
-
-        y = self.layer['default(f2)'](f)
+        c = [code]
+        c += [self.layer['article_code(2)'](c[0])]
+        c += [c[0] + c[1]]
+        y = self.layer['article_code(3)'](c[2])
         return(y)
 
-    pass
+# class suggestion(nn.Module):
 
-class model(nn.Module):
+#     def __init__(self):
 
-    def __init__(self):
+#         super(suggestion, self).__init__()
+#         layer = dict()
+#         layer['vector'] = vector()
+#         layer['sequence'] = sequence()
+#         layer['default(f1)'] = nn.Sequential(nn.Linear(320, 256), nn.ReLU(), nn.Dropout(0.2))
+#         encoder = nn.TransformerEncoderLayer(256, 2)
+#         layer['default(a1)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=2, norm=None)
+#         decoder = nn.TransformerDecoderLayer(256, 2)
+#         layer['default(a2)'] = nn.TransformerDecoder(decoder_layer=decoder, num_layers=2, norm=None)
+#         layer['default(f2)'] = nn.Sequential(nn.Linear(256, constant.embedding['article_code']), nn.ReLU(), nn.Softmax(2))
+#         self.layer = nn.ModuleDict(layer)
+#         return
 
-        super(model, self).__init__()
-        layer = dict()
-        layer['suggestion'] = suggestion()
-        self.layer = nn.ModuleDict(layer)
-        return
+#     def forward(self, b='batch'):
 
-    def forward(self, x='batch'):
+#         # cache = dict()
+#         v = self.layer['vector'](b)
+#         s = self.layer['sequence'](b)
+#         pass
 
-        cache = dict()
-        pass
+#         l = range(len(s))
+#         v = torch.cat([v.unsqueeze(0) for _ in l], 0)
+#         m = self.layer['default(f1)'](torch.cat([s, v], 2))
+#         m = self.layer['default(a1)'](m)
+#         pass
+
+#         f = b['sequence(article_code)']['future'][:-1,:]
+#         f = self.layer['default(a2)'](
+#             tgt = self.layer['sequence'].layer['article_code(e1)'](f), 
+#             memory = m, 
+#             tgt_mask = mask.sequence(f, True), 
+#             memory_mask = None, 
+#             tgt_key_padding_mask = mask.padding(f, 0), 
+#             memory_key_padding_mask = None
+#         )
+#         pass
+
+#         y = self.layer['default(f2)'](f)
+#         return(y)
+
+#     pass
+
+# class model(nn.Module):
+
+#     def __init__(self):
+
+#         super(model, self).__init__()
+#         layer = dict()
+#         layer['suggestion'] = suggestion()
+#         self.layer = nn.ModuleDict(layer)
+#         return
+
+#     def forward(self, x='batch'):
+
+#         cache = dict()
+#         pass
     
-        cache['day(1)'] = self.layer['suggestion'](x)
-        u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
-        x['sequence(price)']['history'] = torch.cat(u, 0)
-        u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
-        x['sequence(article_code)']['history'] = torch.cat(u, 0)
-        pass
+#         cache['day(1)'] = self.layer['suggestion'](x)
+#         u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
+#         x['sequence(price)']['history'] = torch.cat(u, 0)
+#         u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
+#         x['sequence(article_code)']['history'] = torch.cat(u, 0)
+#         pass
 
-        cache['day(2)'] = self.layer['suggestion'](x)
-        u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
-        x['sequence(price)']['history'] = torch.cat(u, 0)
-        u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
-        x['sequence(article_code)']['history'] = torch.cat(u, 0)
-        pass
+#         cache['day(2)'] = self.layer['suggestion'](x)
+#         u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
+#         x['sequence(price)']['history'] = torch.cat(u, 0)
+#         u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
+#         x['sequence(article_code)']['history'] = torch.cat(u, 0)
+#         pass
 
-        cache['day(3)'] = self.layer['suggestion'](x)
-        u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
-        x['sequence(price)']['history'] = torch.cat(u, 0)
-        u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
-        x['sequence(article_code)']['history'] = torch.cat(u, 0)
-        pass
+#         cache['day(3)'] = self.layer['suggestion'](x)
+#         u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
+#         x['sequence(price)']['history'] = torch.cat(u, 0)
+#         u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
+#         x['sequence(article_code)']['history'] = torch.cat(u, 0)
+#         pass
 
-        cache['day(4)'] = self.layer['suggestion'](x)
-        u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
-        x['sequence(price)']['history'] = torch.cat(u, 0)
-        u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
-        x['sequence(article_code)']['history'] = torch.cat(u, 0)
-        pass
+#         cache['day(4)'] = self.layer['suggestion'](x)
+#         u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
+#         x['sequence(price)']['history'] = torch.cat(u, 0)
+#         u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
+#         x['sequence(article_code)']['history'] = torch.cat(u, 0)
+#         pass
 
-        cache['day(5)'] = self.layer['suggestion'](x)
-        u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
-        x['sequence(price)']['history'] = torch.cat(u, 0)
-        u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
-        x['sequence(article_code)']['history'] = torch.cat(u, 0)
-        pass
+#         cache['day(5)'] = self.layer['suggestion'](x)
+#         u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
+#         x['sequence(price)']['history'] = torch.cat(u, 0)
+#         u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
+#         x['sequence(article_code)']['history'] = torch.cat(u, 0)
+#         pass
 
-        cache['day(6)'] = self.layer['suggestion'](x)
-        u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
-        x['sequence(price)']['history'] = torch.cat(u, 0)
-        u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
-        x['sequence(article_code)']['history'] = torch.cat(u, 0)
-        pass
+#         cache['day(6)'] = self.layer['suggestion'](x)
+#         u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
+#         x['sequence(price)']['history'] = torch.cat(u, 0)
+#         u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
+#         x['sequence(article_code)']['history'] = torch.cat(u, 0)
+#         pass
 
-        cache['day(7)'] = self.layer['suggestion'](x)
-        u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
-        x['sequence(price)']['history'] = torch.cat(u, 0)
-        u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
-        x['sequence(article_code)']['history'] = torch.cat(u, 0)
-        pass
+#         cache['day(7)'] = self.layer['suggestion'](x)
+#         u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
+#         x['sequence(price)']['history'] = torch.cat(u, 0)
+#         u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
+#         x['sequence(article_code)']['history'] = torch.cat(u, 0)
+#         pass
 
-        cache['day(8)'] = self.layer['suggestion'](x)
-        u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
-        x['sequence(price)']['history'] = torch.cat(u, 0)
-        u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
-        x['sequence(article_code)']['history'] = torch.cat(u, 0)
-        pass
+#         cache['day(8)'] = self.layer['suggestion'](x)
+#         u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
+#         x['sequence(price)']['history'] = torch.cat(u, 0)
+#         u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
+#         x['sequence(article_code)']['history'] = torch.cat(u, 0)
+#         pass
 
-        cache['day(9)'] = self.layer['suggestion'](x)
-        u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
-        x['sequence(price)']['history'] = torch.cat(u, 0)
-        u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
-        x['sequence(article_code)']['history'] = torch.cat(u, 0)
-        pass
+#         cache['day(9)'] = self.layer['suggestion'](x)
+#         u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
+#         x['sequence(price)']['history'] = torch.cat(u, 0)
+#         u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
+#         x['sequence(article_code)']['history'] = torch.cat(u, 0)
+#         pass
 
-        cache['day(10)'] = self.layer['suggestion'](x)
-        u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
-        x['sequence(price)']['history'] = torch.cat(u, 0)
-        u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
-        x['sequence(article_code)']['history'] = torch.cat(u, 0)
-        pass
+#         cache['day(10)'] = self.layer['suggestion'](x)
+#         u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
+#         x['sequence(price)']['history'] = torch.cat(u, 0)
+#         u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
+#         x['sequence(article_code)']['history'] = torch.cat(u, 0)
+#         pass
 
-        cache['day(11)'] = self.layer['suggestion'](x)
-        u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
-        x['sequence(price)']['history'] = torch.cat(u, 0)
-        u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
-        x['sequence(article_code)']['history'] = torch.cat(u, 0)
-        pass
+#         cache['day(11)'] = self.layer['suggestion'](x)
+#         u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
+#         x['sequence(price)']['history'] = torch.cat(u, 0)
+#         u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
+#         x['sequence(article_code)']['history'] = torch.cat(u, 0)
+#         pass
     
-        cache['day(12)'] = self.layer['suggestion'](x)
-        u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
-        x['sequence(price)']['history'] = torch.cat(u, 0)
-        u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
-        x['sequence(article_code)']['history'] = torch.cat(u, 0)
-        pass
+#         cache['day(12)'] = self.layer['suggestion'](x)
+#         u = [x['sequence(price)']['history'], cache['day(1)']['next(price)'].unsqueeze(0)]
+#         x['sequence(price)']['history'] = torch.cat(u, 0)
+#         u = [x['sequence(article_code)']['history'] , cache['day(1)']['next(article_code)'].argmax(1).unsqueeze(0)]
+#         x['sequence(article_code)']['history'] = torch.cat(u, 0)
+#         pass
 
-        ##  
-        for s in ['next(price)', 'next(article_code)', 'embedding(article_code)']:
+#         ##  
+#         for s in ['next(price)', 'next(article_code)', 'embedding(article_code)']:
 
-            l = [
-                cache['day(1)'][s],
-                cache['day(2)'][s],
-                cache['day(3)'][s],
-                cache['day(4)'][s],
-                cache['day(5)'][s],
-                cache['day(6)'][s],
-                cache['day(7)'][s],
-                cache['day(8)'][s],
-                cache['day(9)'][s],
-                cache['day(10)'][s],
-                cache['day(11)'][s],
-                cache['day(12)'][s],                
-            ]
-            cache[s] = torch.stack(l)
-            pass
+#             l = [
+#                 cache['day(1)'][s],
+#                 cache['day(2)'][s],
+#                 cache['day(3)'][s],
+#                 cache['day(4)'][s],
+#                 cache['day(5)'][s],
+#                 cache['day(6)'][s],
+#                 cache['day(7)'][s],
+#                 cache['day(8)'][s],
+#                 cache['day(9)'][s],
+#                 cache['day(10)'][s],
+#                 cache['day(11)'][s],
+#                 cache['day(12)'][s],                
+#             ]
+#             cache[s] = torch.stack(l)
+#             pass
 
-        return(cache)
+#         return(cache)
 
-    pass
+#     pass
 
 # 'day(1)', 'day(2)', 'day(3)', 'day(4)', 'day(5)', 'day(6)', 'day(7)', 'day(8)', 'day(9)', 'day(10)', 'day(11)', 'day(12)'
 #         v = self.layer['f1'](x[0].unsqueeze(-1))

@@ -4,14 +4,21 @@ import data
 import network
 
 ##  Load all data table.
-table = data.table(source='preprocess(sample)')
+table = data.table(source='preprocess')
 fold  = 20
 split = data.split(table=table.f1, method='fold', size=fold)
 split.get(fold=1)
 dataset = data.dataset(train=split.train, validation=split.validation)
 loader = data.loader(batch=7)
 loader.define(train=dataset.train, validation=dataset.validation)
+
 batch = next(iter(loader.train))
+
+
+
+table.f1
+
+
 
 batch['sequence(t_number)']['history'][:,:,0]
 batch.keys()
