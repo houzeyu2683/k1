@@ -70,7 +70,7 @@ class loader:
             engine = process(item=item, mode=mode)
             engine.prepare()
             batch['edge'] += [engine.edge]
-            batch['item'] += [engine.item]
+            batch['item'] += [pandas.DataFrame(engine.item).transpose()]
             numeric, category = engine.handle(step="vector")
             batch["numeric"]                += [numeric]
             batch['club_member_status']     += [category[0]]
@@ -81,6 +81,7 @@ class loader:
             batch["article_code"]['future'] += [f]
             pass
         
+        batch['item'] = pandas.concat(batch['item'])
         batch['numeric'] = torch.cat(batch['numeric'], 0)
         batch['club_member_status'] = torch.cat(batch['club_member_status'], 1)
         batch['fashion_news_frequency'] = torch.cat(batch['fashion_news_frequency'], 1)

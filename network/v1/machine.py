@@ -80,7 +80,7 @@ class machine:
                 score = 0.0
                 pair = [] 
                 pair += [[i.squeeze(1).argmax(1).tolist() for i in likelihood.split(1,1)]]
-                pair += [[i.squeeze(1).tolist() for i in batch[s[0]][f][1:,:].split(1, 1)]]
+                pair += [i.split() for i in batch['item'][s[0]]]
                 score = self.metric.compute(pair[0], pair[1])
                 pass
 
@@ -240,7 +240,7 @@ class metric:
 
     def compute(self, prediction, target):
 
-        group = [prediction, target]
+        group = [str(prediction), str(target)]
         score = []
         for prediction, target in zip(group[0], group[1]):
 

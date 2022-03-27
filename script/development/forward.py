@@ -12,6 +12,10 @@ dataset = data.dataset(train=split.train, validation=split.validation)
 loader = data.loader(batch=4)
 loader.define(train=dataset.train, validation=dataset.validation)
 batch = next(iter(loader.train))
+
+
+# x = [batch['item'][0].transpose(), batch['item'][1].transpose()]
+# library.pandas.concat(objs=x)
 # batch['article_code']['length']['history']
 
 # vector = network.v1.vector()
