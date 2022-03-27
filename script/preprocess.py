@@ -50,7 +50,7 @@ pass
 ##  針對 transaction 表進行前處理, 以用戶當作 row 來建構對應的標記與特徵序列.
 table.transaction['date_code'] = feature.label.encode(table.transaction['t_dat']) + len(reservation)
 table.transaction['sales_channel_id'] = feature.label.encode(table.transaction['sales_channel_id']) + len(reservation)
-table.transaction['price'] = 1 + (table.transaction['price'] / table.transaction['price'].max())
+table.transaction['price'] = 4 + (table.transaction['price'] / table.transaction['price'].max())
 pass
 
 sequence = dict()

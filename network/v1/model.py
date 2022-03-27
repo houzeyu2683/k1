@@ -12,8 +12,6 @@ class constant:
         "postal_code" : 352899,
         "article_code" : 105545, 
         'position' : 2000
-        # "t_dat_delta":733,
-        # 'article_code_delta':4,
     }
     pass
 
@@ -51,7 +49,7 @@ class vector(nn.Module):
 
         super(vector, self).__init__()
         layer = dict()
-        layer['numeric(1)'] = nn.Sequential(nn.Linear(3, 64), nn.LeakyReLU(), nn.Dropout(0.2))
+        layer['FN+Active+age(1)'] = nn.Sequential(nn.Linear(3, 64), nn.LeakyReLU(), nn.Dropout(0.2))
         layer['club_member_status(1)'] = nn.Embedding(constant.embedding['club_member_status'], 32)
         layer['fashion_news_frequency(1)'] = nn.Embedding(constant.embedding['fashion_news_frequency'], 32)
         layer["postal_code(1)"] = nn.Embedding(constant.embedding['postal_code'], 128)
@@ -60,9 +58,9 @@ class vector(nn.Module):
         return
 
     def forward(self, b='batch'):
-
+        
         v = [
-            self.layer["numeric(1)"](b["numeric"]),
+            self.layer['FN+Active+age(1)'](torch.cat([b['FN'], b['Active'], b['age']],1)),
             self.layer["club_member_status(1)"](b["club_member_status"]).squeeze(0),
             self.layer["fashion_news_frequency(1)"](b["fashion_news_frequency"]).squeeze(0),
             self.layer["postal_code(1)"](b["postal_code"]).squeeze(0)
@@ -79,24 +77,43 @@ class sequence(nn.Module):
 
         super(sequence, self).__init__()
         layer = dict()
+        pass
+
         layer['article_code(1)'] = nn.Embedding(constant.embedding['article_code'], 256)
         layer['article_code(2)'] = nn.Embedding(constant.embedding['position'], 256)
-        encoder = nn.TransformerEncoderLayer(256, 8)
-        layer['article_code(3)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=4, norm=None)
+        encoder = nn.TransformerEncoderLayer(256, 4)
+        layer['article_code(3)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=1, norm=None)
+        pass
+
+        encoder = nn.TransformerEncoderLayer(1, 1)
+        layer['price(1)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=1, norm=None)
+        pass
+
         self.layer = nn.ModuleDict(layer)
         return
 
     def forward(self, b='batch'):
 
         v = dict()
-        s, h, f = "article_code", 'history', 'future'
-        v[s] = dict()
-        e = self.layer['article_code(1)'](b[s][h])
-        p = self.layer['article_code(2)'](position.encode(b[s][h]))
-        v[s][h] = self.layer['article_code(3)'](src=p+e, mask=None, src_key_padding_mask=mask.padding(b[s][h], 0))
-        e = self.layer['article_code(1)'](b[s][f])
-        p = self.layer['article_code(2)'](position.encode(b[s][f]))
-        v[s][f] = p + e
+        n, h, f = [], 'history', 'future'
+        pass
+
+        n += ["article_code"]
+        v[n[0]] = dict({h:None, f:None})
+        e = self.layer['article_code(1)'](b[n[0]][h])
+        p = self.layer['article_code(2)'](position.encode(b[n[0]][h]))
+        v[n[0]][h] = self.layer['article_code(3)'](src=e+p, mask=None, src_key_padding_mask=mask.padding(b[n[0]][h], 0))
+        e = self.layer['article_code(1)'](b[n[0]][f])
+        p = self.layer['article_code(2)'](position.encode(b[n[0]][f]))
+        v[n[0]][f] = e + p
+        pass
+
+        n += ["price"]
+        v[n[1]] = dict({h:None, f:None})
+        e = b[n[1]][h].unsqueeze(-1)
+        v[n[1]][h] = self.layer['price(1)'](src=e, mask=None, src_key_padding_mask=mask.padding(b[n[1]][h], 0))
+        e = b[n[1]][f].unsqueeze(-1)
+        v[n[1]][f] = e
         pass
 
         y = v
@@ -112,32 +129,38 @@ class fusion(nn.Module):
         layer = dict()
         layer['vector'] = vector()
         layer['sequence'] = sequence()
-        encoder = nn.TransformerEncoderLayer(256+64, 2)
-        layer['core(1)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=2, norm=None)
-        layer['core(2)'] = nn.Sequential(nn.Linear(256+64, 256), nn.ReLU(), nn.Dropout(0.2))
-        layer['core(3)'] = nn.Sequential(nn.Linear(256, 256), nn.ReLU())
+        encoder = nn.TransformerEncoderLayer(64+256+1, 1)
+        layer['core(1)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=1, norm=None)
+        layer['core(2)'] = nn.Sequential(nn.Linear(64+256+1, 256), nn.ReLU(), nn.Dropout(0.2))
+        layer['core(3)'] = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(0.2))
         self.layer = nn.ModuleDict(layer)    
         return
     
     def forward(self, b='batch'):
 
+        h, _ = 'history', 'future' 
+        n = []
         vector = self.layer['vector'](b)
         sequence = self.layer['sequence'](b)
         pass
 
-        s, h, _ = ['article_code'], 'history', 'future'
-        l = range(b[s[0]]['length'][h])
-        v = torch.cat([vector.unsqueeze(0) for _ in l], 0)
+        target = 'article_code'
+        length = len(sequence[target][h])
+        v = torch.cat([vector.unsqueeze(0) for _ in range(length)], 0)
         pass
 
-        c = torch.cat([sequence[s[0]][h], v], 2)
+        n += ['article_code']
+        v = torch.cat([sequence[n[0]][h], v], 2) 
         pass
 
-        m = []
-        m += [self.layer['core(1)'](c)]
-        m += [self.layer['core(2)'](m[0])]
-        m += [self.layer['core(3)'](m[1])]
-        memory = m[1] + m[2]
+        n += ['price']
+        v = torch.cat([sequence[n[1]][h], v], 2) 
+        pass
+
+        v = self.layer['core(1)'](src=v, mask=None, src_key_padding_mask=mask.padding(b[target][h]))
+        v = self.layer['core(2)'](v)
+        v = self.layer['core(3)'](v) + v
+        memory = v
         pass
 
         y = vector, sequence, memory
@@ -153,28 +176,31 @@ class suggestion(nn.Module):
         layer = dict()
         layer['fusion'] = fusion()
         decoder = nn.TransformerDecoderLayer(256, 2)
-        layer['article_code(1)'] = nn.TransformerDecoder(decoder_layer=decoder, num_layers=2, norm=None)
-        layer['article_code(2)'] = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(0.2))
-        layer['article_code(3)'] = nn.Sequential(nn.Linear(256, constant.embedding['article_code']), nn.ReLU())
+        layer['core(1)'] = nn.TransformerDecoder(decoder_layer=decoder, num_layers=2, norm=None)
+        layer['core(2)'] = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(0.2))
+        layer['core(3)'] = nn.Sequential(nn.Linear(256, constant.embedding['article_code']), nn.ReLU())
         self.layer = nn.ModuleDict(layer)
         return
 
     def forward(self, b='batch'):
 
         _, sequence, memory = self.layer['fusion'](b)
-        s, _, f = ['article_code'], 'history', 'future'
-        code = self.layer['article_code(1)'](
-            tgt = sequence[s[0]][f][:-1,:,:], 
+        target = 'article_code'
+        _, f = 'history', 'future'
+        v = self.layer['core(1)'](
+            tgt = sequence[target][f][:-1,:,:], 
             memory = memory, 
-            tgt_mask = mask.sequence(b[s[0]]['future'][:-1,:], True), 
+            tgt_mask = mask.sequence(b[target][f][:-1,:], True), 
             memory_mask = None, 
-            tgt_key_padding_mask = mask.padding(b[s[0]]['future'][:-1,:], 0), 
+            tgt_key_padding_mask = mask.padding(b[target][f][:-1,:], 0), 
             memory_key_padding_mask = None
         )
-        c = [code]
-        c += [self.layer['article_code(2)'](c[0])]
-        c += [c[0] + c[1]]
-        y = self.layer['article_code(3)'](c[2])
+        v = self.layer['core(2)'](v) + v
+        s = self.layer['core(3)'](v)
+        pass
+
+        r = [i.squeeze(1).argmax(1) for i in s.split(1,1)]
+        y = s, r
         return(y)
 
 # class suggestion(nn.Module):

@@ -60,38 +60,65 @@ class loader:
         batch['mode'] = mode
         batch['edge'] = []
         batch['item'] = []
-        batch["numeric"]                = []
-        batch['club_member_status']     = []
-        batch['fashion_news_frequency'] = []
-        batch['postal_code']            = []
-        batch["article_code"]           = {'history':[], 'future':[]}
+        h, f = 'history', 'future'
         for item in iteration:
             
             engine = process(item=item, mode=mode)
             engine.prepare()
+            pass
+
             batch['edge'] += [engine.edge]
             batch['item'] += [pandas.DataFrame(engine.item).transpose()]
-            numeric, category = engine.handle(step="vector")
-            batch["numeric"]                += [numeric]
-            batch['club_member_status']     += [category[0]]
-            batch['fashion_news_frequency'] += [category[1]]
-            batch['postal_code']            += [category[2]]
-            h, f = engine.handle(step='article_code')
-            batch["article_code"]['history'] += [h]
-            batch["article_code"]['future'] += [f]
+            name = []
+            pass
+
+            vector = engine.handle(step="vector")
+            pass
+
+            name += ["FN", "Active", "age"] + ["club_member_status", "fashion_news_frequency", "postal_code"]
+            if(name[0] in batch): batch[name[0]] += [vector[name[0]]]
+            if(name[0] not in batch): batch[name[0]] = [vector[name[0]]]
+            if(name[1] in batch): batch[name[1]] += [vector[name[1]]]
+            if(name[1] not in batch): batch[name[1]] = [vector[name[1]]]
+            if(name[2] in batch): batch[name[2]] += [vector[name[2]]]
+            if(name[2] not in batch): batch[name[2]] = [vector[name[2]]]
+            if(name[3] in batch): batch[name[3]] += [vector[name[3]]]
+            if(name[3] not in batch): batch[name[3]] = [vector[name[3]]]
+            if(name[4] in batch): batch[name[4]] += [vector[name[4]]]
+            if(name[4] not in batch): batch[name[4]] = [vector[name[4]]]
+            if(name[5] in batch): batch[name[5]] += [vector[name[5]]]
+            if(name[5] not in batch): batch[name[5]] = [vector[name[5]]]
+            pass
+
+            sequence = engine.handle(step='sequence')
+            pass
+
+            name += ["article_code"]
+            if(name[6] in batch): batch[name[6]][h] += [sequence[name[6]][h]]
+            if(name[6] in batch): batch[name[6]][f] += [sequence[name[6]][f]]
+            if(name[6] not in batch): batch[name[6]] = {h:[sequence[name[6]][h]], f:[sequence[name[6]][f]]}
+            pass
+            
+            name += ["price"]
+            if(name[7] in batch): batch[name[7]][h] += [sequence[name[7]][h]]
+            if(name[7] in batch): batch[name[7]][f] += [sequence[name[7]][f]]
+            if(name[7] not in batch): batch[name[7]] = {h:[sequence[name[7]][h]], f:[sequence[name[7]][f]]}
             pass
         
-        batch['item'] = pandas.concat(batch['item'])
-        batch['numeric'] = torch.cat(batch['numeric'], 0)
-        batch['club_member_status'] = torch.cat(batch['club_member_status'], 1)
-        batch['fashion_news_frequency'] = torch.cat(batch['fashion_news_frequency'], 1)
-        batch['postal_code'] = torch.cat(batch['postal_code'], 1)
+        batch['item']  = pandas.concat(batch['item'])
+        batch['truth'] = [i.split() for i in batch['item']['article_code']]
+        batch[name[0]] = torch.cat(batch[name[0]], 0)
+        batch[name[1]] = torch.cat(batch[name[1]], 0)
+        batch[name[2]] = torch.cat(batch[name[2]], 0)
+        batch[name[3]] = torch.cat(batch[name[3]], 1)
+        batch[name[4]] = torch.cat(batch[name[4]], 1)
+        batch[name[5]] = torch.cat(batch[name[5]], 1)
         pass
 
-        s, h, f, l = 'article_code', 'history', 'future', 'length'
-        batch[s][h] = rnn.pad_sequence(batch[s][h], batch_first=False, padding_value=0).squeeze(-1)
-        batch[s][f] = rnn.pad_sequence(batch[s][f], batch_first=False, padding_value=0).squeeze(-1)
-        batch[s][l] = {h:len(batch[s][h]), f:len(batch[s][f])}
+        batch[name[6]][h] = rnn.pad_sequence(batch[name[6]][h], batch_first=False, padding_value=0).squeeze(-1)
+        batch[name[6]][f] = rnn.pad_sequence(batch[name[6]][f], batch_first=False, padding_value=0).squeeze(-1)
+        batch[name[7]][h] = rnn.pad_sequence(batch[name[7]][h], batch_first=False, padding_value=0).squeeze(-1)
+        batch[name[7]][f] = rnn.pad_sequence(batch[name[7]][f], batch_first=False, padding_value=0).squeeze(-1)
         return(batch)
 
     pass
@@ -114,41 +141,39 @@ class process:
         ##  Handle vector numeric.
         if(step=="vector"):
             
-            '''
-            [item]
-            customer_id             0000423b00ade91418cceaf3b26c6af3dd342b51fd051e...
-            FN                                                                    0.0
-            Active                                                                0.0
-            age                                                                  0.25
-            club_member_status                                                      0
-            fashion_news_frequency                                                  2
-            postal_code                                                         57312
-            '''
-            output = []
-            v = self.item[["FN", "Active", "age"]]
-            v = torch.tensor(v).type(torch.FloatTensor).unsqueeze(0)
-            output += [v]
+            output = dict()
+            name = ["FN", "Active", "age"] + ["club_member_status", "fashion_news_frequency", "postal_code"]
             pass
 
-            v = self.item[["club_member_status", "fashion_news_frequency", "postal_code"]]
-            v = torch.tensor(v).unsqueeze(1).type(torch.LongTensor)
-            v = v.split(1,0)
-            output += [v]
+            output[name[0]] = torch.tensor(self.item[[name[0]]]).type(torch.FloatTensor).unsqueeze(0)
+            output[name[1]] = torch.tensor(self.item[[name[1]]]).type(torch.FloatTensor).unsqueeze(0)
+            output[name[2]] = torch.tensor(self.item[[name[2]]]).type(torch.FloatTensor).unsqueeze(0)
+            pass
+            
+            output[name[3]] = torch.tensor(self.item[[name[3]]]).unsqueeze(0).type(torch.LongTensor)
+            output[name[4]] = torch.tensor(self.item[[name[4]]]).unsqueeze(0).type(torch.LongTensor)
+            output[name[5]] = torch.tensor(self.item[[name[5]]]).unsqueeze(0).type(torch.LongTensor)
             pass
 
-        if(step=='article_code'):
+        if(step=='sequence'):
 
-            '''
-            customer_id             0000423b00ade91418cceaf3b26c6af3dd342b51fd051e...
-            article_code                                          1 33994 19336 33751
-            return ((length,1),(length,1))
-            '''
-            line = [int(i) for i in self.item['article_code'].split()]
-            h, f = line[:self.edge], [2.0] + line[self.edge:][:12]
-            if(h==[]): h += [1.0]
-            history = torch.tensor(h).unsqueeze(1).type(torch.LongTensor)
-            future  = torch.tensor(f).unsqueeze(1).type(torch.LongTensor)
-            output = [history, future]            
+            output = dict()
+            name = ['article_code', 'price']
+            h, f = 'history', 'future'
+            pass
+
+            line = [int(i) for i in self.item[name[0]].split()]
+            history, future = [1.0] + line[:self.edge], [2.0] + line[self.edge:][:12]
+            history = torch.tensor(history).unsqueeze(1).type(torch.LongTensor)
+            future  = torch.tensor(future).unsqueeze(1).type(torch.LongTensor)
+            output[name[0]] = {h:history, f:future}
+            pass
+
+            line = [float(i) for i in self.item[name[1]].split()]
+            history, future = [1.0] + line[:self.edge], [2.0] + line[self.edge:][:12]
+            history = torch.tensor(history).unsqueeze(1).type(torch.FloatTensor)
+            future  = torch.tensor(future).unsqueeze(1).type(torch.FloatTensor)
+            output[name[1]] = {h:history, f:future}
             pass
 
         return(output)
