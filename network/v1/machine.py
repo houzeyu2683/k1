@@ -75,25 +75,26 @@ class machine:
                     batch[n][f] = batch[n][f].to(self.device) 
                     pass
 
-                embedding, likelihood, prediction, hit = self.model(batch)
+                likelihood, prediction, positive, negative = self.model(batch)
                 pass
 
                 loss = 0.0
-                loss += self.cost[0](likelihood.flatten(0, 1), batch[target][f][1:,:].flatten(0, 1))          
-                loss += self.cost[1](embedding['upgrade'].flatten(0,1), embedding['origin'].flatten(0,1), torch.cat(hit, 0))
+                loss += self.cost[0](likelihood.flatten(0,1), prediction.flatten(0,1))
+                loss += self.cost[1](positive[0].flatten(0,1), positive[1].flatten(0,1), positive[2].flatten(0,1))
+                loss += self.cost[1](negative[0].flatten(0,1), negative[1].flatten(0,1), negative[2].flatten(0,1))
                 pass
 
                 loss.backward()
                 self.optimizer.step()
                 pass
-                
+
+                ##  Metric.
                 score = 0.0
-                prediction = [i.tolist() for i in prediction]
-                truth = [i.squeeze(1).tolist() for i in batch[target][f][1:,:].split(1,1)]
-                truth = [list(filter((0).__ne__, i)) for i in truth]
-                score = self.metric.compute(prediction, truth)
+                prediction = [i.squeeze(-1).tolist() for i in prediction.split(1,1)]
+                truth = [list(filter((0).__ne__, i)) for i in [i.squeeze(-1).tolist() for i in batch[target][f][1:,:].split(1,1)]]
+                score += self.metric.compute(prediction, truth)
                 pass
-                
+
                 iteration['total loss'] += [round(loss.item(), 3)]
                 iteration['map@12 score'] += [round(score, 3)]
                 pass

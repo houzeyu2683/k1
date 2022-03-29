@@ -92,7 +92,7 @@ class sequence(nn.Module):
         self.layer = nn.ModuleDict(layer)
         return
 
-    def forward(self, b='batch'):
+    def forward(self, b='batch', ):
 
         v = dict()
         n, h, f = [], 'history', 'future'
@@ -197,17 +197,21 @@ class suggestion(nn.Module):
             memory_key_padding_mask = None
         )
         v = self.layer['core(2)'](v) + v
-        pass
-
         upgrade = v
-        embedding  = {"upgrade":upgrade, "origin":origin}
-        likelihood = self.layer['core(3)'](v)
-        prediction = [i.squeeze(1).argmax(1) for i in likelihood.split(1,1)]
-        target     = [i.squeeze(-1) for i in b['article_code']['future'][1:,:].split(1,1)]
-        hit = [2*(p==t)-1 for p,t in zip(prediction, target)]
         pass
 
-        y = embedding, likelihood, prediction, hit
+        positive = upgrade, sequence[target][f][1:,:,:], 2*(b[target][f][1:,:]==b[target][f][1:,:])-1
+        pass
+
+        likelihood = self.layer['core(3)'](upgrade)
+        prediction = torch.cat([p.unsqueeze(1) for p in [i.squeeze(1).argmax(1) for i in likelihood.split(1,1)]], 1)
+        hit = 2*(prediction==b[target][f][1:,:])-1
+        e = self.layer['fusion'].layer['sequence'].layer['article_code(1)'](prediction)
+        p = self.layer['fusion'].layer['sequence'].layer['article_code(2)'](position.encode(prediction))
+        negative = upgrade, e+p, hit
+        pass
+
+        y = likelihood, prediction, positive, negative
         return(y)
 
     pass

@@ -106,7 +106,7 @@ class loader:
             pass
         
         batch['item']  = pandas.concat(batch['item'])
-        batch['truth'] = [i.split() for i in batch['item']['article_code']]
+        # batch['truth'] = [i.split() for i in batch['item']['article_code']]
         batch[name[0]] = torch.cat(batch[name[0]], 0)
         batch[name[1]] = torch.cat(batch[name[1]], 0)
         batch[name[2]] = torch.cat(batch[name[2]], 0)
