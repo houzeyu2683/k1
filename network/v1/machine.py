@@ -76,10 +76,11 @@ class machine:
                     pass
 
                 likelihood, prediction, positive, negative = self.model(batch)
+                # print(prediction)
                 pass
 
                 loss = 0.0
-                loss += self.cost[0](likelihood.flatten(0,1), prediction.flatten(0,1))
+                loss += self.cost[0](likelihood.flatten(0,1), batch[target][f][1:,].flatten(0,1))
                 loss += self.cost[1](positive[0].flatten(0,1), positive[1].flatten(0,1), positive[2].flatten(0,1))
                 loss += self.cost[1](negative[0].flatten(0,1), negative[1].flatten(0,1), negative[2].flatten(0,1))
                 pass

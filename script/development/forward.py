@@ -34,7 +34,7 @@ l = machine.cost[1](negative[0].flatten(0,1), negative[1].flatten(0,1), negative
 ##  Metric.
 prediction = [i.squeeze(-1).tolist() for i in prediction.split(1,1)]
 truth = [list(filter((0).__ne__, i)) for i in [i.squeeze(-1).tolist() for i in batch[target][f][1:,:].split(1,1)]]
-machine.metric.compute(prediction, truth)
+s = machine.metric.compute(prediction, truth)
 
 ##  Epoch
 machine.learn(train=loader.train)
