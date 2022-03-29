@@ -12,23 +12,27 @@ dataset = data.dataset(train=split.train, validation=split.validation)
 loader = data.loader(batch=4)
 loader.define(train=dataset.train, validation=dataset.validation)
 batch = next(iter(loader.train))
+batch
 
-batch.keys()
-batch['FN'].shape
-batch['club_member_status'].shape
-batch['article_code']['history'].shape
-batch['article_code']['future'].shape
-batch['price']['history'].shape
-batch['price']['future'].shape
 
-v = network.v1.vector()(batch)
-v.shape
 
-sequence = network.v1.sequence()
-s = sequence(batch)
-s.keys()
-s['article_code']['history'].shape
-s['price']['history'].shape
+# ##  batch
+# batch.keys()
+# batch['FN'].shape
+# batch['club_member_status'].shape
+# batch['article_code']['history'].shape
+# batch['article_code']['future'].shape
+# batch['price']['history'].shape
+# batch['price']['future'].shape
+
+# v = network.v1.vector()(batch)
+# v.shape
+
+# sequence = network.v1.sequence()
+# s = sequence(batch)
+# s.keys()
+# s['article_code']['history'].shape
+# s['price']['history'].shape
 
 
 # import torch 

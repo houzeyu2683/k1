@@ -30,7 +30,7 @@ class machine:
 
     def prepare(self):
 
-        self.cost       = torch.nn.CrossEntropyLoss(ignore_index=0)
+        self.cost       = [torch.nn.CrossEntropyLoss(ignore_index=0), torch.nn.CosineEmbeddingLoss()]
         self.optimizer  = torch.optim.Adam(self.model.parameters(), lr=1e-3, betas=(0.9, 0.98), eps=1e-9)
         self.history    = history()
         self.checkpoint = 0
@@ -55,13 +55,18 @@ class machine:
             for batch in progress:
                 
                 self.model.zero_grad()
-                name = ["FN", "Active", "age"] + ['club_member_status', 'fashion_news_frequency', 'postal_code']
                 target = 'article_code'
+                pass
+
+                ##  Vector.
+                name = ["FN", "Active", "age"] + ['club_member_status', 'fashion_news_frequency', 'postal_code']
+                
                 for n in name: 
                     
                     batch[n] = batch[n].to(self.device) 
                     pass
-
+                
+                ##  Sequence.
                 name = ['article_code', 'price']
                 h, f = 'history', 'future'
                 for n in name: 
@@ -70,11 +75,12 @@ class machine:
                     batch[n][f] = batch[n][f].to(self.device) 
                     pass
 
-                likelihood, suggestion = self.model(batch)
+                embedding, likelihood, prediction, hit = self.model(batch)
                 pass
 
                 loss = 0.0
-                loss = self.cost(likelihood.flatten(0, 1), batch[target][f][1:,:].flatten(0, 1))                
+                loss += self.cost[0](likelihood.flatten(0, 1), batch[target][f][1:,:].flatten(0, 1))          
+                loss += self.cost[1](embedding['upgrade'].flatten(0,1), embedding['origin'].flatten(0,1), torch.cat(hit, 0))
                 pass
 
                 loss.backward()
@@ -82,7 +88,10 @@ class machine:
                 pass
                 
                 score = 0.0
-                score = self.metric.compute(prediction=suggestion, target=batch['truth'])
+                prediction = [i.tolist() for i in prediction]
+                truth = [i.squeeze(1).tolist() for i in batch[target][f][1:,:].split(1,1)]
+                truth = [list(filter((0).__ne__, i)) for i in truth]
+                score = self.metric.compute(prediction, truth)
                 pass
                 
                 iteration['total loss'] += [round(loss.item(), 3)]
@@ -237,7 +246,7 @@ class metric:
 
     def compute(self, prediction, target):
 
-        group = [str(prediction), str(target)]
+        group = [prediction, target]
         score = []
         for prediction, target in zip(group[0], group[1]):
 
