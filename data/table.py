@@ -17,7 +17,7 @@ class table:
             ##  資料 transaction 表.
             path = os.path.join(root, source, 'csv', "transactions_train.csv")
             if(mode=='default'): self.transaction = pandas.read_csv(path, dtype={'article_id':str})
-            if(mode=='sample'): self.transaction = pandas.read_csv(path, dtype={'article_id':str}, nrows=400000)
+            if(mode=='sample'): self.transaction = pandas.read_csv(path, dtype={'article_id':str}, nrows=1000000).sample(100000, random_state=0).sort_values(by=['t_dat']).reset_index(drop=True)
             
             ##  資料 submission 表.
             path = os.path.join(root, source, 'csv', "sample_submission.csv")
