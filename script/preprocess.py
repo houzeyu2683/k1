@@ -6,7 +6,7 @@ import data
 
 ##  載入資料.
 table = data.table(source='kaggle', mode='sample')
-cache = feature.cache(storage='resource/preprocess')
+cache = feature.cache(storage='resource/preprocess(sample)')
 pass
 
 ##  初步清理.
@@ -121,8 +121,8 @@ pass
 
 ##  初步整合.
 cache.f1 = library.pandas.merge(left=cache.customer, right=cache.sequence, on='customer_id', how='outer')
-cache.save(what=cache.f1, file='f1.csv', format='csv')
-cache.save(what=cache.f1.dropna(), file='f1(history).csv', format='csv')
+cache.save(what=cache.f1.dropna(), file='f1.csv', format='csv')
+cache.save(what=cache.f1.fillna(""), file='f1.csv(global)', format='csv')
 pass
 
 

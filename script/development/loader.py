@@ -9,10 +9,25 @@ fold  = 20
 split = data.split(table=table.f1, method='fold', size=fold)
 split.get(fold=1)
 dataset = data.dataset(train=split.train, validation=split.validation)
+pass
+
+item = dataset.train.__getitem__(27)
+engine = data.process(item, 'train')
+engine.prepare()
+engine.handle(step='vector')
+engine.handle(step='sequence').keys()
+
 loader = data.loader(batch=4)
-loader.define(train=dataset.train, validation=dataset.validation)
+loader.define(train=dataset.train)
 batch = next(iter(loader.train))
-batch
+batch.keys()
+batch['price']['history'].shape
+batch['club_member_status'].shape
+batch['age'].shape
+batch['t_dat_d']
+
+
+
 
 
 

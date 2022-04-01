@@ -5,82 +5,213 @@ from torch import nn
 
 class constant:
 
-    version = '1.0.0'
-    article = 150
+    version = '2.0.0'
+    embedding = {
+        'club_member_status' : 4,
+        "fashion_news_frequency" : 5,
+        "postal_code" : 352899,
+        "article_code" : 105545, 
+        'position' : 2000
+    }
     pass
 
-class record(nn.Module):
+class mask:
 
-    def __init__(self):
+    def padding(x="(length, batch)", value=0):
 
-        super(record, self).__init__()
-        layer = dict()
-        layer['e01'] = nn.Embedding(47226, constant.article)
-        layer['e02'] = nn.Embedding(45877, constant.article)
-        layer['e03'] = nn.Embedding(134, constant.article)
-        layer['e04'] = nn.Embedding(133, constant.article)
-        layer['e05'] = nn.Embedding(21, constant.article)
-        layer['e06'] = nn.Embedding(32, constant.article)
-        layer['e07'] = nn.Embedding(32, constant.article)
-        layer['e08'] = nn.Embedding(52, constant.article)
-        layer['e09'] = nn.Embedding(52, constant.article)
-        layer['e10'] = nn.Embedding(10, constant.article)
-        layer['e11'] = nn.Embedding(10, constant.article)
-        layer['e12'] = nn.Embedding(22, constant.article)
-        layer['e13'] = nn.Embedding(22, constant.article)
-        layer['e14'] = nn.Embedding(301, constant.article)
-        layer['e15'] = nn.Embedding(252, constant.article)
-        layer['e16'] = nn.Embedding(12, constant.article)
-        layer['e17'] = nn.Embedding(12, constant.article)
-        layer['e18'] = nn.Embedding(7, constant.article)
-        layer['e19'] = nn.Embedding(7, constant.article)
-        layer['e20'] = nn.Embedding(59, constant.article)
-        layer['e21'] = nn.Embedding(58, constant.article)
-        layer['e22'] = nn.Embedding(23, constant.article)
-        layer['e23'] = nn.Embedding(23, constant.article)
-        layer['e24'] = nn.Embedding(43407, constant.article)
-        layer['e25'] = nn.Embedding(105544, constant.article)
-        layer['a1'] = nn.TransformerEncoder(
-            encoder_layer=nn.TransformerEncoderLayer(25*constant.article, 5),
-            num_layers=2
-        )
-        layer['f1'] = nn.Sequential(nn.Linear(25*constant.article, 512), nn.Tanh(), nn.Dropout(0.2))
-        self.layer = nn.ModuleDict(layer)
-        return
-
-    def forward(self, x="(length, batch, index)"):
-
-        group = []
-        for iteration, index in enumerate(range(x.shape[2]), 1):
-
-            group = group + [self.layer["e"+str(iteration).zfill(2)](x[:,:,index])]
-            pass
-
-        group = torch.stack(group, 3).flatten(2,3)
-        group = self.layer['a1'](group)
-        ##  (batch, hidden)
-        y = self.layer['f1'](group[0,:,:])
+        y = (x==value).transpose(0,1)
+        y = y.cuda() if(x.is_cuda) else y.cpu()
         return(y)
 
-class model(nn.Module):
+    def sequence(x="(length, batch)", recourse=False):
+
+        length = len(x)
+        if(not recourse): y = torch.full((length,length), bool(False))
+        if(recourse): y = torch.triu(torch.full((length,length), float('-inf')), diagonal=1)
+        y = y.cuda() if(x.is_cuda) else y.cpu()
+        return(y)
+
+    pass
+
+class position:
+
+    def encode(x='(length, batch)'):
+
+        y = x.clone()
+        for i in range(len(y)): y[i,:] = i
+        return(y)
+
+    pass
+
+class vector(nn.Module):
 
     def __init__(self):
 
-        super(model, self).__init__()
+        super(vector, self).__init__()
         layer = dict()
-        layer['record'] = record()
-        layer['f1']     = nn.Sequential(nn.Linear(604, 512), nn.Tanh(), nn.Dropout(0.2))
-        layer['f2']     = nn.Sequential(nn.Linear(512+512, 512), nn.Tanh(), nn.Dropout(0.2))
-        layer['f3']     = nn.Sequential(nn.Linear(512, 105544), nn.Sigmoid())
-        layer['f4']     = nn.Sequential(nn.Linear(512, constant.article), nn.Sigmoid())
+        layer['FN+Active+age(1)'] = nn.Sequential(nn.Linear(3, 64), nn.LeakyReLU(), nn.Dropout(0.2))
+        layer['club_member_status(1)'] = nn.Embedding(constant.embedding['club_member_status'], 32)
+        layer['fashion_news_frequency(1)'] = nn.Embedding(constant.embedding['fashion_news_frequency'], 32)
+        layer["postal_code(1)"] = nn.Embedding(constant.embedding['postal_code'], 128)
+        layer["core(1)"] = nn.Sequential(nn.Linear(64+32+32+128, 64), nn.ReLU(), nn.Dropout(0.2))
         self.layer = nn.ModuleDict(layer)
         return
 
-    def forward(self, x='[row, sequence, target]'):
+    def forward(self, b='batch'):
+        
+        v = [
+            self.layer['FN+Active+age(1)'](torch.cat([b['FN'], b['Active'], b['age']],1)),
+            self.layer["club_member_status(1)"](b["club_member_status"]).squeeze(0),
+            self.layer["fashion_news_frequency(1)"](b["fashion_news_frequency"]).squeeze(0),
+            self.layer["postal_code(1)"](b["postal_code"]).squeeze(0)
+        ]
+        v = torch.cat(v, 1)
+        y = self.layer['core(1)'](v)
+        return(y)
 
-        group = torch.cat([self.layer['f1'](x[0]), self.layer['record'](x[1])], 1)
-        group = self.layer['f2'](group)
-        y = self.layer['f3'](group), self.layer['f4'](group), self.layer['record'].layer['e25'](x[2])
+    pass
+
+class sequence(nn.Module):
+
+    def __init__(self, ):
+
+        super(sequence, self).__init__()
+        layer = dict()
+        pass
+
+        layer['article_code(1)'] = nn.Embedding(constant.embedding['article_code'], 256)
+        layer['article_code(2)'] = nn.Embedding(constant.embedding['position'], 256)
+        encoder = nn.TransformerEncoderLayer(256, 4)
+        layer['article_code(3)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=1, norm=None)
+        pass
+
+        encoder = nn.TransformerEncoderLayer(1, 1)
+        layer['price(1)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=1, norm=None)
+        pass
+
+        self.layer = nn.ModuleDict(layer)
+        return
+
+    def forward(self, b='batch', ):
+
+        v = dict()
+        n, h, f = [], 'history', 'future'
+        pass
+
+        n += ["article_code"]
+        v[n[0]] = dict({h:None, f:None})
+        e = self.layer['article_code(1)'](b[n[0]][h])
+        p = self.layer['article_code(2)'](position.encode(b[n[0]][h]))
+        v[n[0]][h] = self.layer['article_code(3)'](src=e+p, mask=None, src_key_padding_mask=mask.padding(b[n[0]][h], 0))
+        e = self.layer['article_code(1)'](b[n[0]][f])
+        p = self.layer['article_code(2)'](position.encode(b[n[0]][f]))
+        v[n[0]][f] = e + p
+        pass
+
+        n += ["price"]
+        v[n[1]] = dict({h:None, f:None})
+        e = b[n[1]][h].unsqueeze(-1)
+        v[n[1]][h] = self.layer['price(1)'](src=e, mask=None, src_key_padding_mask=mask.padding(b[n[1]][h], 0))
+        e = b[n[1]][f].unsqueeze(-1)
+        v[n[1]][f] = e
+        pass
+
+        y = v
+        return(y)
+    
+    pass
+
+class fusion(nn.Module):
+
+    def __init__(self):
+
+        super(fusion, self).__init__()
+        layer = dict()
+        layer['vector'] = vector()
+        layer['sequence'] = sequence()
+        encoder = nn.TransformerEncoderLayer(64+256+1, 1)
+        layer['core(1)'] = nn.TransformerEncoder(encoder_layer=encoder, num_layers=1, norm=None)
+        layer['core(2)'] = nn.Sequential(nn.Linear(64+256+1, 256), nn.ReLU(), nn.Dropout(0.2))
+        layer['core(3)'] = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(0.2))
+        self.layer = nn.ModuleDict(layer)    
+        return
+    
+    def forward(self, b='batch'):
+
+        h, _ = 'history', 'future' 
+        n = []
+        vector = self.layer['vector'](b)
+        sequence = self.layer['sequence'](b)
+        pass
+
+        target = 'article_code'
+        length = len(sequence[target][h])
+        v = torch.cat([vector.unsqueeze(0) for _ in range(length)], 0)
+        pass
+
+        n += ['article_code']
+        v = torch.cat([sequence[n[0]][h], v], 2) 
+        pass
+
+        n += ['price']
+        v = torch.cat([sequence[n[1]][h], v], 2) 
+        pass
+
+        v = self.layer['core(1)'](src=v, mask=None, src_key_padding_mask=mask.padding(b[target][h]))
+        v = self.layer['core(2)'](v)
+        v = self.layer['core(3)'](v) + v
+        memory = v
+        pass
+
+        y = vector, sequence, memory
+        return(y)
+
+    pass
+
+class suggestion(nn.Module):
+
+    def __init__(self):
+
+        super(suggestion, self).__init__()
+        layer = dict()
+        layer['fusion'] = fusion()
+        decoder = nn.TransformerDecoderLayer(256, 2)
+        layer['core(1)'] = nn.TransformerDecoder(decoder_layer=decoder, num_layers=2, norm=None)
+        layer['core(2)'] = nn.Sequential(nn.Linear(256, 256), nn.ReLU(), nn.Dropout(0.2))
+        layer['core(3)'] = nn.Sequential(nn.Linear(256, constant.embedding['article_code']), nn.ReLU())
+        self.layer = nn.ModuleDict(layer)
+        return
+
+    def forward(self, b='batch'):
+
+        _, sequence, memory = self.layer['fusion'](b)
+        target = 'article_code'
+        _, f = 'history', 'future'
+        origin = sequence[target][f][:-1,:,:]
+        v = self.layer['core(1)'](
+            tgt = origin, 
+            memory = memory, 
+            tgt_mask = mask.sequence(b[target][f][:-1,:], True), 
+            memory_mask = None, 
+            tgt_key_padding_mask = mask.padding(b[target][f][:-1,:], 0), 
+            memory_key_padding_mask = None
+        )
+        v = self.layer['core(2)'](v) + v
+        upgrade = v
+        pass
+
+        positive = upgrade, sequence[target][f][1:,:,:], 2*(b[target][f][1:,:]==b[target][f][1:,:])-1
+        pass
+
+        likelihood = self.layer['core(3)'](upgrade)
+        prediction = torch.cat([p.unsqueeze(1) for p in [i.squeeze(1).argmax(1) for i in likelihood.split(1,1)]], 1)
+        hit = 2*(prediction==b[target][f][1:,:])-1
+        e = self.layer['fusion'].layer['sequence'].layer['article_code(1)'](prediction)
+        p = self.layer['fusion'].layer['sequence'].layer['article_code(2)'](position.encode(prediction))
+        negative = upgrade, e+p, hit
+        pass
+
+        y = likelihood, prediction, positive, negative
         return(y)
 
     pass
