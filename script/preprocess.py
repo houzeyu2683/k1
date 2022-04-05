@@ -1,33 +1,26 @@
 
-##  載入套件.
+##  ====================================================================================================
+##  The packages.
 import feature
 import library
-import data
 
-##  載入資料.
-table = data.table(source='kaggle', mode='sample')
-cache = feature.cache(storage='resource/preprocess(sample)')
-pass
+##  The root of project.
+##  Create the cache of table.
+root = library.os.getcwd()
+table = library.cache(version='1.0.0')
+table.folder = library.os.path.join(library.os.getcwd(), 'resource/kaggle/csv')
 
-##  初步清理.
-table.transaction = table.transaction
+##  ====================================================================================================
+##  Load <article> table.  
+table.article = library.pandas.read_csv(library.os.path.join(table.folder, "articles.csv"), dtype=str)
+
+##  Handle missing value.
 table.article["detail_desc"] = table.article["detail_desc"].fillna("<NA>")
-table.customer['FN'] = table.customer['FN'].fillna(0.0)
-table.customer['Active'] = table.customer['Active'].fillna(0.0)
-table.customer['club_member_status'] = table.customer['club_member_status'].fillna("<NA>")
-table.customer['fashion_news_frequency'] = table.customer['fashion_news_frequency'].fillna("<NA>")
-table.customer['age'] = table.customer['age'].fillna(-1)
-pass
 
-##  針對 article 表進行前處理, 進行編碼.
-cache.article = table.article.copy()
-pass
-
-target = 'article_code'
+##  Label encoding for category variables.
+key  = 'article_id_code'
 head = 10
-cache.article[target] = feature.label.encode(cache.article['article_id']) + head
-pass
-
+table.article[key] = feature.label.encode(table.article['article_id']) + head
 loop = [
     'product_code', 'prod_name', "product_type_no", 'product_type_name',
     "product_group_name", "graphical_appearance_no", "graphical_appearance_name",
@@ -38,91 +31,88 @@ loop = [
     'section_no', 'section_name', 'garment_group_no', 
     'garment_group_name', 'detail_desc'
 ]
-for variable in loop:
+for key in loop:
 
-    cache.article[variable] = feature.label.encode(cache.article[variable]) + head
+    table.article[key] = feature.label.encode(table.article[key]) + head
+    value = table.article[key].nunique()
+    print("{}:{}".format(key, value))
     pass
 
-cache.save(what=cache.article, file='article.csv', format='csv')
-pass
+##  ====================================================================================================
+##  Load <customer> table.
+table.customer = library.pandas.read_csv(library.os.path.join(table.folder, "customers.csv"), dtype=str)
 
-##  針對 customer 表進行前處理, 以用戶為單位來建構特徵.
-cache.customer = table.customer.copy()
-pass
+##  Handle missing value.
+table.customer['FN'] = table.customer['FN'].fillna(0.0)
+table.customer['Active'] = table.customer['Active'].fillna(0.0)
+table.customer['club_member_status'] = table.customer['club_member_status'].fillna("<NA>")
+table.customer['fashion_news_frequency'] = table.customer['fashion_news_frequency'].fillna("<NA>")
+table.customer['age'] = table.customer['age'].fillna(-1)
 
-variable = 'club_member_status'
-cache.customer[variable] = feature.label.encode(cache.customer[variable]) + head
-pass
+##  Label encoding for category variables.
+loop = ['club_member_status', 'fashion_news_frequency', 'postal_code']
+head = 10
+for key in loop:
 
-variable = 'fashion_news_frequency'
-cache.customer[variable] = feature.label.encode(cache.customer[variable]) + head
-pass
+    table.customer[key] = feature.label.encode(table.customer[key]) + head
+    value = table.customer[key].nunique()
+    print("{}:{}".format(key, value))    
+    pass
 
-variable = 'postal_code'
-cache.customer[variable] = feature.label.encode(cache.customer[variable]) + head
-pass
+##  ====================================================================================================
+##  Load <transaction> table.
+table.transaction = library.pandas.read_csv(library.os.path.join(table.folder, "transactions_train.csv"), dtype=str, nrows=100000)
+table.transaction['t_dat'] = library.pandas.to_datetime(table.transaction['t_dat'])
 
-cache.save(what=cache.customer, file='customer.csv', format='csv')
-pass
+##  Label encoding for category variables.
+##  Transform numeric variable.
+head = 10
+table.transaction['t_dat_code'] = feature.label.encode(table.transaction['t_dat']) + head
+table.transaction['sales_channel_id'] = feature.label.encode(table.transaction['sales_channel_id']) + head
+table.transaction['price'] = [head + float(i) for i in table.transaction['price']]
 
-##  針對 transaction 表進行前處理, 以用戶為單位來建構標記與特徵的序列.
-cache.sequence = dict()
-pass
+##  ====================================================================================================
+##  Save the checkpoint.
+storage = library.os.path.join(root, 'resource/{}/csv/'.format("clean"))
+library.os.makedirs(storage, exist_ok=True)
+table.article.to_csv(library.os.path.join(storage, 'article.csv'), index=False)
+table.customer.to_csv(library.os.path.join(storage, 'customer.csv'), index=False)
+table.transaction.to_csv(library.os.path.join(storage, 'transaction.csv'), index=False)
 
-variable = 't_dat'
-cache.transaction = table.transaction.copy()
-cache.transaction[variable] = feature.label.encode(cache.transaction[variable]) + head
-cache.table = feature.sequence.flatten(table=cache.transaction.astype(str), key='customer_id', group=['customer_id'], variable=variable)
-cache.sequence[variable] = cache.table
-pass
-
-variable = 'price'
-cache.transaction = table.transaction.copy()
-cache.table = feature.sequence.flatten(table=cache.transaction.astype(str), key='customer_id', group=['customer_id', 't_dat'], variable=variable)
-cache.sequence[variable] = cache.table
-pass
-
-variable = 'sales_channel_id'
-cache.transaction = table.transaction.copy()
-cache.transaction[variable] = feature.label.encode(cache.transaction[variable]) + head
-cache.table = feature.sequence.flatten(table=cache.transaction.astype(str), key='customer_id', group=['customer_id', 't_dat'], variable=variable)
-cache.sequence[variable] = cache.table
-pass
-
-##  將 article 表的訊息納入前處理, 以用戶為單位來建構標記與特徵的序列.
-loop = [
-    'product_code', 'prod_name', 'product_type_no',
-    'product_type_name', 'product_group_name', 'graphical_appearance_no',
-    'graphical_appearance_name', 'colour_group_code', 'colour_group_name',
-    'perceived_colour_value_id', 'perceived_colour_value_name',
-    'perceived_colour_master_id', 'perceived_colour_master_name',
-    'department_no', 'department_name', 'index_code', 'index_name',
-    'index_group_no', 'index_group_name', 'section_no', 'section_name',
-    'garment_group_no', 'garment_group_name', 'detail_desc',
-    'article_code'
-]
+##  ====================================================================================================
+##  Preprocess the tables to sequence by user.
+table.sequence = dict()
+loop = ['price', 'sales_channel_id', "t_dat_code"]
 for variable in loop:
 
-    print("start {} item in loop".format(variable))
-    cache.transaction = table.transaction.copy()
-    cache.transaction = library.pandas.merge(
-        cache.transaction, 
-        cache.article[["article_id", variable]], 
-        on="article_id", how='inner'
-    )
-    cache.table = feature.sequence.flatten(table=cache.transaction.astype(str), key='customer_id', group=['customer_id', 't_dat'], variable=variable)
-    cache.sequence[variable] = cache.table
+    table.sequence[variable] = feature.sequence.flatten(table=table.transaction.astype(str), key='customer_id', variable=variable, group=['customer_id', 't_dat'])
+    pass
+
+loop = [
+    'product_code', 'prod_name', "product_type_no", 'product_type_name',
+    "product_group_name", "graphical_appearance_no", "graphical_appearance_name",
+    "colour_group_code", 'colour_group_name', 'perceived_colour_value_id', 
+    'perceived_colour_value_name', 'perceived_colour_master_id', 
+    'perceived_colour_master_name', 'department_no', 'department_name', 
+    'index_code', 'index_name', 'index_group_no', 'index_group_name', 
+    'section_no', 'section_name', 'garment_group_no', 
+    'garment_group_name', 'detail_desc', 'article_id_code'
+]
+for variable in library.tqdm.tqdm(loop, total=len(loop)):
+
+    selection = table.transaction[['t_dat', "customer_id", "article_id"]].copy()
+    selection = library.pandas.merge(selection, table.article[["article_id", variable]], on="article_id", how='inner')
+    table.sequence[variable] = feature.sequence.flatten(table=selection.astype(str), key='customer_id', group=['customer_id', 't_dat'], variable=variable)
     pass
 
 merge = lambda x,y: library.pandas.merge(left=x, right=y, on='customer_id', how='inner')
-cache.sequence = library.functools.reduce(merge, cache.sequence.values())
-cache.save(what=cache.sequence, file='sequence.csv', format='csv')
-pass
+table.sequence = library.functools.reduce(merge, table.sequence.values())
 
-##  初步整合.
-cache.f1 = library.pandas.merge(left=cache.customer, right=cache.sequence, on='customer_id', how='outer')
-cache.save(what=cache.f1.dropna(), file='f1.csv', format='csv')
-cache.save(what=cache.f1.fillna(""), file='f1.csv(global)', format='csv')
-pass
-
+##  ====================================================================================================
+##  Mix together and save the checkpoint.
+storage = library.os.path.join(root, 'resource/{}/csv/'.format("preprocess"))
+library.os.makedirs(storage, exist_ok=True)
+table.group = library.pandas.merge(left=table.customer, right=table.sequence, on='customer_id', how='outer')
+table.group.dropna().to_csv(library.os.path.join(storage, "group(train).csv"), index=False)
+table.group.fillna("").to_csv(library.os.path.join(storage, "group(all).csv"), index=False)
 

@@ -1,150 +1,121 @@
 
+##  Packages.
+import v1
+
+##
+table = v1.data.table(source='resource/preprocess/csv')
+table.load(file='group(train).csv')
+
+##
+split = v1.data.split(table=table.file, method='fold', size=20)
+split.get(1)
+
+##
+dataset = v1.data.dataset(train=split.train, validation=split.validation, test=None)
+
+##
+item = dataset.train.__getitem__(0)
+mode = 'train'
+engine = v1.data.process(item, mode)
+engine.prepare()
+vector = engine.handle(step='vector')
+sequence = engine.handle(step='sequence')
+
+##
+loader = v1.data.loader(batch=1)
+loader.define(train=dataset.train)
+batch = next(iter(loader.train))
+
+##
+vector = v1.network.vector()
+vector(batch)
+
+##
+sequence = v1.network.sequence()
+y = sequence(batch)
+
+fusion = v1.network.fusion()
+y = fusion(batch)
+
+suggestion = v1.network.suggestion()
+likelihood, prediction = suggestion(batch)
+
+model = v1.network.model()
+likelihood, prediction = model(batch)
+
+##
+import tqdm
 import torch
-x = torch.nn.functional.one_hot(torch.tensor([0,1,2,1]), 400000)
-
-
-# import library
-# import data
-# import network
-
-# ##  Load all data table.
-# table = data.table(source='preprocess')
-# fold  = 20
-# split = data.split(table=table.f1, method='fold', size=fold)
-# split.get(fold=1)
-# dataset = data.dataset(train=split.train, validation=split.validation)
-# loader = data.loader(batch=7)
-# loader.define(train=dataset.train, validation=dataset.validation)
-
-# batch = next(iter(loader.train))
-
-
-
-# table.f1
-
-
-
-# batch['sequence(t_number)']['history'][:,:,0]
-# batch.keys()
-# batch['vector(numeric)'].shape
-# batch['vector(club_member_status)'].shape
-# batch['vector(fashion_news_frequency)'].shape
-# batch['vector(postal_code)'].shape
-# batch['vector(club_member_status)'].shape
-# batch['vector(fashion_news_frequency)'].shape
-# batch['vector(postal_code)'].shape
-# batch['sequence(price)']['history'].shape
-# batch['sequence(article_code)']['history'].shape
-# batch['sequence(article_code_delta)']['history'].shape
-
-
-# batch['sequence(t_number)']['history'].shape
-
-
-
-
-
-# import torch
-# from torch.nn.utils import rnn
-# torch.cat(batch['vector(numeric)'], 0).shape
-# batch['vector(category)'] = torch.cat(batch['vector(category)'], 1)
-# batch['vector(category)'].split(1)[0].shape
-# batch['sequence(price)']['history']
-# rnn.pad_sequence(batch['sequence(price)']['history'], batch_first=False, padding_value=0).shape
-# rnn.pad_sequence(batch['sequence(article_code)']['history'], batch_first=False, padding_value=0).shape
-# batch['sequence(article_code)']
-
-# ##  Each fold.
-# score = {'train':[], "validation":[]}
-# # k = 0
-# for k in split.iterate():
-
-#     print("start fold {}".format(k))
-#     split.get(fold=k)
-#     dataset = data.dataset(train=split.train, validation=split.validation)
-#     pass
-
-#     loader = data.loader(batch=36)
-#     loader.define(train=dataset.train, validation=dataset.validation)
-#     pass
-
-#     model = network.v5.model()
-#     machine = network.machine(model=model, device='cuda', folder='log/fold({})'.format(k))
-#     machine.prepare()
-#     pass
-
-#     epoch = 10
-#     # e = 0
-#     # batch = next(iter(loader.train))
-#     # o = model(batch)
-#     # o['embedding(article_code)'].shape
-#     # batch['sequence(article_code)']['future'].shape
-#     for e in range(epoch):
-
-#         machine.learn(train=loader.train,validation=loader.validation)
-#         machine.save(what='history')
-#         machine.save(what='checkpoint', mode='better')
-#         machine.update(what='checkpoint')
-#         continue
+import numpy
+history = v1.network.history()
+device = 'cuda'
+cost = torch.nn.CrossEntropyLoss(ignore_index=0)
+model = model.to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.98), eps=1e-9)
+metric = v1.network.metric(limit=12)
+model.train()
+iteration  = {
+    'total loss':[],
+    'map@12 score':[]
+}
+progress = tqdm.tqdm(loader.train, leave=False)
+for batch in progress:
     
-#     score['train'] += [max(machine.history.metric['train'])]
-#     score['validation'] += [max(machine.history.metric['validation'])]
-#     pass
-
-# value = library.numpy.mean(score['train']), library.numpy.mean(score['validation'])
-# print("[train] map@12 : {} | [validation] map@12 : {}".format(*value))
-# pass
-
-
-
-# # import library
-# # import data
-# # import network
-
-# # ##  Load all data table.
-# # table = data.table(source='preprocess')
-# # table.f1 = table.f1.loc[table.f1['seq_len']<10]
-
-# # fold = 20
-# # split = data.split(table=table.f1, method='fold', size=fold)
-
-# # ##  Each fold.
-# # score = {'train':[], "validation":[]}
-# # # k = 0
-# # for k in split.iterate():
-
-# #     print("start fold {}".format(k))
-# #     split.get(fold=k)
-# #     dataset = data.dataset(train=split.train, validation=split.validation)
-# #     pass
-
-# #     loader = data.loader(batch=36)
-# #     loader.define(train=dataset.train, validation=dataset.validation)
-# #     pass
-
-# #     model = network.v5.model()
-# #     machine = network.machine(model=model, device='cuda', folder='log/fold({})'.format(k))
-# #     machine.prepare()
-# #     pass
-
-# #     epoch = 10
-# #     # e = 0
-# #     # batch = next(iter(loader.train))
-# #     # o = model(batch)
-# #     # o['embedding(article_code)'].shape
-# #     # batch['sequence(article_code)']['future'].shape
-# #     for e in range(epoch):
-
-# #         machine.learn(train=loader.train,validation=loader.validation)
-# #         machine.save(what='history')
-# #         machine.save(what='checkpoint', mode='better')
-# #         machine.update(what='checkpoint')
-# #         continue
+    model.zero_grad()
+    target = 'article_id_code'
+    vector = ['FN', 'Active', 'age', 'club_member_status', 'fashion_news_frequency', 'postal_code']
+    sequence = [
+        'price', 'sales_channel_id', 'product_code', 'prod_name', 'product_type_no', 
+        'product_type_name', 'product_group_name', 'graphical_appearance_no', 
+        'graphical_appearance_name', 'colour_group_code', 'colour_group_name', 
+        'perceived_colour_value_id', 'perceived_colour_value_name', 'perceived_colour_master_id', 
+        'perceived_colour_master_name', 'department_no', 'department_name', 'index_code', 
+        'index_name', 'index_group_no', 'index_group_name', 'section_no', 'section_name', 
+        'garment_group_no', 'garment_group_name', 'detail_desc', 'article_id_code'
+    ]
+    pass
     
-# #     score['train'] += [max(machine.history.metric['train'])]
-# #     score['validation'] += [max(machine.history.metric['validation'])]
-# #     pass
+    ##  Vector.
+    for k in vector: 
+        
+        batch[k] = batch[k].to(device) 
+        pass
 
-# # value = library.numpy.mean(score['train']), library.numpy.mean(score['validation'])
-# # print("[train] map@12 : {} | [validation] map@12 : {}".format(*value))
-# # pass
+    ##  Sequence.
+    for k in sequence: 
+        
+        batch[k]['history'] = batch[k]['history'].to(device) 
+        batch[k]['future'] = batch[k]['future'].to(device) 
+        pass
+
+    likelihood, prediction = model(batch)
+    pass
+
+    loss = 0.0
+    loss += cost(likelihood.flatten(0,1), batch[target]['future'][1:,].flatten(0,1))
+    loss.backward()
+    optimizer.step()
+    pass
+
+    ##  Metric.
+    score = 0.0
+    truth = [i.split() for i in batch['item']['article_id_code']]
+    score += metric.compute(prediction, truth)
+    pass
+
+    iteration['total loss'] += [round(loss.item(), 3)]
+    iteration['map@12 score'] += [round(score, 3)]
+    pass
+
+    value = (
+        iteration['total loss'][-1],
+        iteration['map@12 score'][-1]
+    )
+    message = "[train] total loss : {} | map@12 score : {}".format(*value)
+    progress.set_description(message)
+    pass
+    
+history.loss['train'] += [round(numpy.array(iteration['total loss']).mean(), 3)]
+history.metric['train'] += [round(numpy.array(iteration['map@12 score']).mean(), 3)]
+pass
+
