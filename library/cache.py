@@ -1,24 +1,25 @@
 
 import os
 import json
+import pickle
 
 class cache:
 
-    def __init__(self, version=None):
+    def __init__(self, version='0.0.0'):
         
         self.version = version
         return
-    
-    # def save(self, what=None, file=None, format='csv'):
 
-    #     os.makedirs(os.path.join(self.storage, format), exist_ok=True)
-    #     if(format=='csv'): what.to_csv(os.path.join(self.storage, format, file), index=False)
-    #     if(format=='json'): 
+    def save(self, name, file=''):
 
-    #         with open(os.path.join(self.storage, format, file), 'w') as paper: json.dump(what, paper)
-    #         pass
+        folder = os.path.dirname(file)
+        os.makedirs(folder, exist_ok=True)
+        with open(file, 'wb') as paper: pickle.dump(name, paper)
+        return
 
-    #     return
+    def load(self, file=''):
+
+        with open(file, 'rb') as paper: variable = pickle.load(paper)
+        return(variable)
 
     pass
-

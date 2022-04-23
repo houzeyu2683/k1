@@ -1,20 +1,34 @@
 
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
 
 class split:
 
-    def __init__(self, table=None, method='fold', size=10):
+    def __init__(self, table=None, group=None, method='fold', size=10):
 
         self.table  = table
         self.method = method
         self.size   = size
+        self.group  = group
         if(self.method=='fold'):
 
-            knife = KFold(n_splits=self.size, random_state=0, shuffle=True)
-            block = []
-            for train, validation in knife.split(self.table): block += [{'train':train, 'validation': validation}]
-            pass
-        
+            if(group==None):
+
+                knife = KFold(n_splits=self.size, random_state=0, shuffle=True)
+                block = []
+                for train, validation in knife.split(self.table): block += [{'train':train, 'validation': validation}]
+                pass
+            
+            else:
+
+                knife = StratifiedKFold(n_splits=self.size, random_state=0, shuffle=True)
+                block = []
+                for train, validation in knife.split(self.table, self.table[self.group]): 
+                    
+                    block += [{'train':train, 'validation': validation}]
+                    pass
+                
+                pass
+
         self.block  = block
         return
 

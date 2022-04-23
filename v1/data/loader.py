@@ -1,4 +1,5 @@
 
+import os
 import numpy
 import pandas
 import torch
@@ -7,7 +8,7 @@ from torch.nn.utils import rnn
 from functools import partial
 import random
 
-
+##
 class loader:
 
     def __init__(self, batch=32):
@@ -54,14 +55,13 @@ class loader:
         batch = dict()
         batch['size'] = len(iteration)
         batch['mode'] = mode
-        batch['edge'] = []
+        batch['boundary'] = []
         batch['item'] = []
-        # h, f = 'history', 'future'
         for item in iteration:
             
             engine = process(item=item, mode=mode)
             engine.prepare()
-            batch['edge'] += [engine.edge]
+            batch['boundary'] += [engine.boundary]
             batch['item'] += [pandas.DataFrame(engine.item).transpose()]
             pass
 
@@ -124,6 +124,7 @@ class loader:
 
     pass
 
+##
 class process:
 
     def __init__(self, item=None, mode=None):
@@ -136,7 +137,7 @@ class process:
 
         key = 'article_id_code'
         limit = len(self.item[key].split()) - 1
-        self.edge = random.randint(0, limit)
+        self.boundary = random.randint(0, limit)
         return
 
     def handle(self, step=''):
@@ -171,16 +172,45 @@ class process:
             ]
             for k in key:
 
+                convert = lambda x: torch.tensor(x).unsqueeze(1)
                 period = [float(i) for i in self.item[k].split()]
-                history, future = period[:self.edge], period[self.edge:][:top]
+                history, future = period[:self.boundary], period[self.boundary:][:top]
                 history = [1.0] + history
                 future  = [1.0] + future
-                convert = lambda x: torch.tensor(x).unsqueeze(1)#.type(torch.FloatTensor)
                 output[k] = {"history":convert(history), 'future':convert(future)}
                 pass
-
+            
             pass
 
         return(output)
 
     pass
+
+
+                # if(k=='article_id_code'):
+
+                #     if(len(history)>1): 
+                        
+                #         pair = zip(history[:-1], history[1:])
+                #         history = " ".join([edge.get("{}-{}".format(a, b)) for a, b in pair])
+                #         pass
+
+                #     else:
+                    
+                #         history = " ".join([edge.get("1-1")])
+                #         pass
+
+                #     pass
+
+                #     if(len(future)>1): 
+                        
+                #         pair = zip(future[:-1], future[1:])
+                #         future = " ".join([edge.get("{}-{}".format(a, b)) for a, b in pair])
+                #         pass
+
+                #     else:
+                    
+                #         future = " ".join([edge.get("1-1")])
+                #         pass
+
+                #     pass

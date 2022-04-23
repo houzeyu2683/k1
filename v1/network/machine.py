@@ -35,7 +35,7 @@ class metric:
             top = min(self.limit, len(target))
             if(top<12): prediction = prediction[:top]
             if(top==12): target = target[:top]
-            match = [1*(p==t) for p, t in zip(prediction, target)]
+            match = [1*(str(p)==str(t)) for p, t in zip(prediction, target)]
             precision = []
             for i, _ in enumerate(match):
                 
@@ -87,7 +87,7 @@ class machine:
             for batch in progress:
                 
                 self.model.zero_grad()
-                target = 'article_id_code'
+                target = 'product_code'#'article_id_code'
                 vector = ['FN', 'Active', 'age', 'club_member_status', 'fashion_news_frequency', 'postal_code']
                 sequence = [
                     'price', 'sales_channel_id', 'product_code', 'prod_name', 'product_type_no', 
@@ -124,8 +124,8 @@ class machine:
 
                 ##  Metric.
                 score = 0.0
-                truth = [i.split() for i in batch['item']['article_id_code']]
-                score += metric.compute(prediction, truth)
+                truth = [i.split() for i in batch['item'][target]]
+                score += self.metric.compute(prediction, truth)
                 pass
 
                 iteration['total loss'] += [round(loss.item(), 3)]
@@ -157,7 +157,7 @@ class machine:
                 
                 with torch.no_grad():
 
-                    target = 'article_id_code'
+                    target = "product_code"#'article_id_code'
                     vector = ['FN', 'Active', 'age', 'club_member_status', 'fashion_news_frequency', 'postal_code']
                     sequence = [
                         'price', 'sales_channel_id', 'product_code', 'prod_name', 'product_type_no', 
@@ -192,8 +192,8 @@ class machine:
 
                 ##  Metric.
                 score = 0.0
-                truth = [i.split() for i in batch['item']['article_id_code']]
-                score += metric.compute(prediction, truth)
+                truth = [i.split() for i in batch['item'][target]]
+                score += self.metric.compute(prediction, truth)
                 pass
 
                 iteration['total loss'] += [round(loss.item(), 3)]

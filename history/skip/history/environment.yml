@@ -1,5 +1,0 @@
-data:
-  root: '/##Dataset##'
-  table: './***.csv'
-  image: './****/jpg/'
-  

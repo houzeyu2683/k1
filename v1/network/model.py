@@ -711,8 +711,8 @@ class suggestion(nn.Module):
         layer["{}".format(key)] = fusion()
         pass
         
-        key = 'article_id_code'
-        layer["{}(1)".format(key)] = nn.Embedding(105542+10, 512)
+        key = "product_code"#'article_id_code'
+        layer["{}(1)".format(key)] = nn.Embedding(47224+10, 512)# nn.Embedding(105542+10, 512)
         decoder = nn.TransformerDecoderLayer(d_model=512, nhead=8)
         layer["{}(2)".format(key)] = nn.TransformerDecoder(decoder_layer=decoder, num_layers=2, norm=None)
         layer["{}(3)".format(key)] = nn.Sequential(nn.Linear(512, 105542+10), nn.ReLU())
@@ -726,7 +726,7 @@ class suggestion(nn.Module):
         memory = self.layer['fusion'](batch)
         pass
 
-        key = 'article_id_code'
+        key = "product_code"#'article_id_code'
         token = batch[key]['future'][:-1, :]
         encode = self.layer["{}(2)".format(key)](
             tgt = self.layer["{}(1)".format(key)](token),

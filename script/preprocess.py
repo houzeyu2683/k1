@@ -5,13 +5,13 @@ import feature
 import library
 
 ##  The root of project.
-##  Create the cache of table.
+##  Initialize the cache object for save the miscellany.
 root = library.os.getcwd()
-table = library.cache(version='1.0.0')
-table.folder = library.os.path.join(library.os.getcwd(), 'resource/kaggle/csv')
+table = library.cache()
+table.folder = library.os.path.join(library.os.getcwd(), 'resource/kaggle(sample)/csv')
 
 ##  ====================================================================================================
-##  Load <article> table.  
+##  Load <article> data.
 table.article = library.pandas.read_csv(library.os.path.join(table.folder, "articles.csv"), dtype=str)
 
 ##  Handle missing value.
@@ -71,13 +71,13 @@ table.transaction['t_dat_code'] = feature.label.encode(table.transaction['t_dat'
 table.transaction['sales_channel_id'] = feature.label.encode(table.transaction['sales_channel_id']) + head
 table.transaction['price'] = [head + float(i) for i in table.transaction['price']]
 
-##  ====================================================================================================
-##  Save the checkpoint.
-storage = library.os.path.join(root, 'resource/{}/csv/'.format("clean"))
-library.os.makedirs(storage, exist_ok=True)
-table.article.to_csv(library.os.path.join(storage, 'article.csv'), index=False)
-table.customer.to_csv(library.os.path.join(storage, 'customer.csv'), index=False)
-table.transaction.to_csv(library.os.path.join(storage, 'transaction.csv'), index=False)
+# ##  ====================================================================================================
+# ##  Save the checkpoint.
+# storage = library.os.path.join(root, 'resource/{}/csv/'.format("clean"))
+# library.os.makedirs(storage, exist_ok=True)
+# table.article.to_csv(library.os.path.join(storage, 'article.csv'), index=False)
+# table.customer.to_csv(library.os.path.join(storage, 'customer.csv'), index=False)
+# table.transaction.to_csv(library.os.path.join(storage, 'transaction.csv'), index=False)
 
 ##  ====================================================================================================
 ##  Preprocess the tables to sequence by user.
@@ -115,4 +115,52 @@ library.os.makedirs(storage, exist_ok=True)
 table.group = library.pandas.merge(left=table.customer, right=table.sequence, on='customer_id', how='outer')
 table.group.dropna().to_csv(library.os.path.join(storage, "group(train).csv"), index=False)
 table.group.fillna("").to_csv(library.os.path.join(storage, "group(all).csv"), index=False)
+
+# ##  ====================================================================================================
+# ##  Generatoe the <edge> table between [article_id_code] and [article_id_code].
+# loop  = " ".join(table.group['article_id_code'].dropna()).split()
+# edge = ["1-{}".format(i) for i in set(loop)]
+# total = len(loop)-1
+# for a, b in library.tqdm.tqdm(zip(loop[:-1], loop[1:]), total=total):
+
+#     edge = edge + ['-'.join([a,b])]
+#     pass
+
+# edge = library.pandas.DataFrame({"pair": edge})
+# edge = edge.drop_duplicates()
+# head = 10
+# edge['pair_code'] = feature.label.encode(edge['pair']) + head
+# table.edge = edge
+
+# ##  Save the checkpoint.
+# storage = library.os.path.join(root, 'resource/{}/csv/'.format("preprocess"))
+# library.os.makedirs(storage, exist_ok=True)
+# table.edge.to_csv(library.os.path.join(storage, "edge.csv"), index=False)
+# table.edge.nunique()
+
+# ##  Update to <group> table.
+# for _, item in table.group.dropna().iterrows():
+
+#     line = item['article_id_code'].split()
+#     if(len(line)>1):
+
+#         track = []
+#         for a, b in zip(line[:-1], line[1:]):
+
+#             code = table.edge.loc[table.edge['pair']=="-".join([a,b])]['pair_code'].item()
+#             track += [str(code)]
+#             pass
+        
+#         track = " ".join(track)
+#         pass
+    
+#     if(len(line)==1):
+
+#         code = table.edge.loc[table.edge['pair']=='1-{}'.format(line[-1])]['pair_code'].item()
+#         track = [str(code)]
+#         track = " ".join(track)
+#         pass
+
+#     break
+
 

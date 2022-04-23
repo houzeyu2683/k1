@@ -1,21 +1,27 @@
 
 import library
-import data
-import network
+import v1
+# data
+# import network
 
 ##  Load all data table.
-table = data.table(source='preprocess')
+table = v1.data.table(source="resource/preprocess/csv/")
+table.load(file="group(train).csv")
+table.file.head()
+pass
+
 fold  = 20
-split = data.split(table=table.f1, method='fold', size=fold)
+split = v1.data.split(table=table.file, method='fold', size=fold)
 split.get(fold=1)
-dataset = data.dataset(train=split.train, validation=split.validation)
+dataset = v1.data.dataset(train=split.train, validation=split.validation)
 pass
 
 item = dataset.train.__getitem__(27)
-engine = data.process(item, 'train')
+engine = v1.data.process(item, 'train')
 engine.prepare()
 engine.handle(step='vector')
-engine.handle(step='sequence').keys()
+engine.handle(step='sequence')
+pass
 
 loader = data.loader(batch=4)
 loader.define(train=dataset.train)
