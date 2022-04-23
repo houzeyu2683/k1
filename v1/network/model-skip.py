@@ -1,35 +1,11 @@
 
 import torch
+import torchvision
 from torch import nn
 
-class vector(nn.Module):
-    
-    def __init__(self):
+class constant:
 
-        super(vector, self).__init__()
-        layer = dict()
-        layer['FN+Active+age(1)'] = nn.Sequential(nn.Linear(3, 16), nn.Tanh(), nn.Dropout(0.2))
-        layer['club_member_status(1)'] = nn.Embedding(4+10, 8)
-        layer['fashion_news_frequency(1)'] = nn.Embedding(5+10, 8)
-        layer["postal_code(1)"] = nn.Embedding(352899+10, 256)
-        layer["core(1)"] = nn.Sequential(nn.Linear(16+8+8+256, 512), nn.ReLU(), nn.Dropout(0.2))
-        layer["core(2)"] = nn.Sequential(nn.Linear(512, 512), nn.Tanh(), nn.Dropout(0.2))
-        self.layer = nn.ModuleDict(layer)
-        return
-
-    def forward(self, batch='batch'):
-        
-        v = [
-            self.layer['FN+Active+age(1)'](torch.cat([batch['FN'], batch['Active'], batch['age']],1)),
-            self.layer["club_member_status(1)"](batch["club_member_status"]).squeeze(0),
-            self.layer["fashion_news_frequency(1)"](batch["fashion_news_frequency"]).squeeze(0),
-            self.layer["postal_code(1)"](batch["postal_code"]).squeeze(0)
-        ]
-        v = torch.cat(v, 1)  ##  (batch, feature)
-        v = self.layer['core(1)'](v)
-        y = self.layer['core(2)'](v) + v
-        return(y)
-
+    version = '1.0.0'
     pass
 
 class mask:
@@ -60,7 +36,35 @@ class position:
 
     pass
 
+class vector(nn.Module):
 
+    def __init__(self):
+
+        super(vector, self).__init__()
+        layer = dict()
+        layer['FN+Active+age(1)'] = nn.Sequential(nn.Linear(3, 16), nn.ReLU(), nn.Dropout(0.2))
+        layer['club_member_status(1)'] = nn.Embedding(4+10, 8)
+        layer['fashion_news_frequency(1)'] = nn.Embedding(5+10, 8)
+        layer["postal_code(1)"] = nn.Embedding(352899+10, 256)
+        layer["core(1)"] = nn.Sequential(nn.Linear(16+8+8+256, 512), nn.ReLU(), nn.Dropout(0.2))
+        layer["core(2)"] = nn.Sequential(nn.Linear(512, 512), nn.Tanh(), nn.Dropout(0.2))
+        self.layer = nn.ModuleDict(layer)
+        return
+
+    def forward(self, batch='batch'):
+        
+        v = [
+            self.layer['FN+Active+age(1)'](torch.cat([batch['FN'], batch['Active'], batch['age']],1)),
+            self.layer["club_member_status(1)"](batch["club_member_status"]).squeeze(0),
+            self.layer["fashion_news_frequency(1)"](batch["fashion_news_frequency"]).squeeze(0),
+            self.layer["postal_code(1)"](batch["postal_code"]).squeeze(0)
+        ]
+        v = torch.cat(v, 1)  ##  (batch, feature)
+        v = self.layer['core(1)'](v)
+        y = self.layer['core(2)'](v) + v
+        return(y)
+
+    pass
 
 class sequence(nn.Module):
 

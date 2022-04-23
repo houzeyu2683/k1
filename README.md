@@ -93,3 +93,12 @@ script
 
 
 推薦下 k 個。
+
+
+
+SOP
+shape
+head
+nasum
+na column describe
+
