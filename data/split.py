@@ -1,5 +1,5 @@
 
-from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
+from sklearn.model_selection import KFold, StratifiedKFold
 
 class split:
 
@@ -29,7 +29,9 @@ class split:
                 
                 pass
 
-        self.block  = block
+        self.block = block
+        self.train      = None
+        self.validation = None
         return
 
     def iterate(self):

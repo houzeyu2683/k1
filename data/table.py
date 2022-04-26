@@ -6,7 +6,7 @@ from sklearn import preprocessing
 
 class table:
     
-    def __init__(self, source="/resource/preprocess/csv/"):
+    def __init__(self, source=""):
 
         self.source = source
         return

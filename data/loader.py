@@ -1,4 +1,5 @@
 
+##  The packages
 import os
 import numpy
 import pandas
@@ -8,7 +9,24 @@ from torch.nn.utils import rnn
 from functools import partial
 import random
 
-##
+def pad(x='list of tensor', value=0, right=True):
+    
+    if(right): 
+        
+        y = rnn.pad_sequence(x, batch_first=False, padding_value=value)
+        pass
+
+    else:
+
+        x = [i.flip(dims=[0]) for i in x]
+        x = rnn.pad_sequence(x, batch_first=False, padding_value=value)
+        y = x.flip(dims=[0])        
+        pass
+
+    "length, batch"
+    return(y)
+
+##  Data loader.
 class loader:
 
     def __init__(self, batch=32):
@@ -57,6 +75,7 @@ class loader:
         batch['mode'] = mode
         batch['boundary'] = []
         batch['item'] = []
+        batch['bottom'] = None
         for item in iteration:
             
             engine = process(item=item, mode=mode)
@@ -89,18 +108,21 @@ class loader:
         pass
         
         ##  Vector.
-        batch['FN'] = torch.cat(batch["FN"], 0).type(torch.FloatTensor)
-        batch['Active'] = torch.cat(batch["Active"], 0).type(torch.FloatTensor)
-        batch['age'] = torch.cat(batch['age'], 0).type(torch.FloatTensor)
-        batch['club_member_status'] = torch.cat(batch["club_member_status"], 1).type(torch.LongTensor)
-        batch["fashion_news_frequency"] = torch.cat(batch["fashion_news_frequency"], 1).type(torch.LongTensor)
-        batch["postal_code"] = torch.cat(batch["postal_code"], 1).type(torch.LongTensor)
+        batch['FN'] = torch.cat(batch["FN"], 0).type(torch.FloatTensor) # (batch, 1)
+        batch['Active'] = torch.cat(batch["Active"], 0).type(torch.FloatTensor) # (batch, 1)
+        batch['age'] = torch.cat(batch['age'], 0).type(torch.FloatTensor) # (batch, 1)
+        batch['club_member_status'] = torch.cat(batch["club_member_status"], 1).type(torch.LongTensor) # (1, batch)
+        batch["fashion_news_frequency"] = torch.cat(batch["fashion_news_frequency"], 1).type(torch.LongTensor) # (1, batch)
+        batch["postal_code"] = torch.cat(batch["postal_code"], 1).type(torch.LongTensor) # (1, batch)
         pass
         
         # ##  Sequence.
         h, f = 'history', 'future'
-        batch['price'][h] = rnn.pad_sequence(batch['price'][h], batch_first=False, padding_value=0).squeeze(-1).type(torch.FloatTensor)
-        batch['price'][f] = rnn.pad_sequence(batch['price'][f], batch_first=False, padding_value=0).squeeze(-1).type(torch.FloatTensor)
+        # batch['price'][h] = rnn.pad_sequence(batch['price'][h], batch_first=False, padding_value=0).squeeze(-1).type(torch.FloatTensor)
+        # batch['price'][f] = rnn.pad_sequence(batch['price'][f], batch_first=False, padding_value=0).squeeze(-1).type(torch.FloatTensor)
+        batch['price'][h] = pad(batch['price'][h], value=0, right=False).type(torch.FloatTensor) # (length, batch, 1)
+        batch['price'][f] = pad(batch['price'][f], value=0, right=False).type(torch.FloatTensor) # (length, batch, 1)
+
         key = [
             'sales_channel_id', 'product_code', 
             'prod_name', 'product_type_no', 'product_type_name', 
@@ -112,7 +134,7 @@ class loader:
             'department_name', 'index_code', 'index_name', 
             'index_group_no', 'index_group_name', 'section_no', 
             'section_name', 'garment_group_no', 'garment_group_name', 
-            'detail_desc', 'article_id_code'
+            'detail_desc', 'article_label'
         ]
         for k in key:
 
@@ -124,39 +146,40 @@ class loader:
 
     pass
 
-##
+##  Item process. 
 class process:
-
+    
     def __init__(self, item=None, mode=None):
-
+    
         self.item = item.copy()
         self.mode = mode
         return
     
     def prepare(self):
-
-        key = 'article_id_code'
-        limit = len(self.item[key].split()) - 1
+        
+        # print(self.item['length'])
+        limit = float(self.item['length']) - 1
         self.boundary = random.randint(0, limit)
         return
-
+    
     def handle(self, step=''):
-
+    
         output = dict()
+        pass
+
         if(step=="vector"):
             
-            ##  基礎特徵工程.
             key = ["FN", "Active", "age", "club_member_status", "fashion_news_frequency", "postal_code"]
             for k in key:
-
+    
                 v = float(self.item[k])
                 output[k] = torch.tensor([v]).unsqueeze(1)
                 pass
-            
+
             pass
-
+    
         if(step=='sequence'):
-
+    
             top = 12
             key = [
                 'price', 'sales_channel_id',
@@ -168,15 +191,15 @@ class process:
                 'department_no', 'department_name', 'index_code', 'index_name',
                 'index_group_no', 'index_group_name', 'section_no', 'section_name',
                 'garment_group_no', 'garment_group_name', 'detail_desc',
-                'article_id_code'
+                'article_label'
             ]
             for k in key:
 
                 convert = lambda x: torch.tensor(x).unsqueeze(1)
                 period = [float(i) for i in self.item[k].split()]
                 history, future = period[:self.boundary], period[self.boundary:][:top]
-                history = [1.0] + history
-                future  = [1.0] + future
+                if(history==[]): history += [0.0]
+                future  = future
                 output[k] = {"history":convert(history), 'future':convert(future)}
                 pass
             
@@ -185,32 +208,3 @@ class process:
         return(output)
 
     pass
-
-
-                # if(k=='article_id_code'):
-
-                #     if(len(history)>1): 
-                        
-                #         pair = zip(history[:-1], history[1:])
-                #         history = " ".join([edge.get("{}-{}".format(a, b)) for a, b in pair])
-                #         pass
-
-                #     else:
-                    
-                #         history = " ".join([edge.get("1-1")])
-                #         pass
-
-                #     pass
-
-                #     if(len(future)>1): 
-                        
-                #         pair = zip(future[:-1], future[1:])
-                #         future = " ".join([edge.get("{}-{}".format(a, b)) for a, b in pair])
-                #         pass
-
-                #     else:
-                    
-                #         future = " ".join([edge.get("1-1")])
-                #         pass
-
-                #     pass
