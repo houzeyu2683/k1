@@ -1,766 +1,325 @@
 
 import torch
 from torch import nn
+from torch.nn import functional
 
-class vector(nn.Module):
+class argument:
+
+    personality = {
+        'p1':[],
+        'p2':[],
+        'p3':[4, 8],
+        'p4':[3, 8],
+        'p5':[],
+        'p6':[88829, 256]
+    }
+    behavior = {
+        'b1':[13037+2, 100, 1], 
+        'b2':[13227+2, 100, 1], 
+        'b3':[100+2, 10, 1],
+        'b4':[99+2, 10, 1], 
+        'b5':[15+2, 1, 1], 
+        'b6':[29+2, 3, 1],
+        'b7':[29+2, 3, 1], 
+        'b8':[50+2, 5, 1],
+        'b9':[50+2, 5, 1],
+        'b10':[8+2, 1, 1],
+        'b11':[8+2, 1, 1],
+        'b12':[19+2, 2, 1], 
+        'b13':[19+2, 2, 1],
+        'b14':[275+2, 27, 1], 
+        'b15':[228+2, 22, 1], 
+        'b16':[10+2, 1, 1], 
+        'b17':[10+2, 1, 1],
+        'b18':[5+2, 1, 1], 
+        'b19':[5+2, 1, 1], 
+        'b20':[56+2, 5, 1], 
+        'b21':[56+2, 5, 1],
+        'b22':[21+2, 2, 1], 
+        'b23':[21+2, 2, 1], 
+        'b24':[12149+2, 100, 1],
+        'b25':[24736+2, 100, 1],
+        'r1':[1, 1, 1],
+        'r2':[4, 1, 1], 
+    }
+    pass
+
+class code:
+
+    def __init__(self, method='hot', device='cpu'):
+
+        self.method = method
+        self.device = device
+        return
+
+    def convert(self, tensor, level):
+
+        if(self.method=='hot'):
+
+            tensor = functional.one_hot(tensor, level)
+            tensor = tensor.type(torch.FloatTensor).to(self.device)
+            pass
+
+        return(tensor)
+
+    pass
+
+class memory:
+
+    def __init__(self, shape, device='cpu'):
     
-    def __init__(self):
+        self.shape = shape
+        self.device = device
+        return
+    
+    def reset(self):
 
-        super(vector, self).__init__()
+        tensor = torch.zeros(self.shape)
+        tensor = tensor.type(torch.FloatTensor).to(self.device)
+        return(tensor)
+
+    pass
+
+class personality(nn.Module):
+    
+    def __init__(self, device='cpu'):
+
+        super(personality, self).__init__()
+        self.device = device
+        pass
+
         layer = dict()
-        layer['FN+Active+age(1)'] = nn.Sequential(nn.Linear(3, 16), nn.Tanh(), nn.Dropout(0.2))
-        layer['club_member_status(1)'] = nn.Embedding(4+10, 8)
-        layer['fashion_news_frequency(1)'] = nn.Embedding(5+10, 8)
-        layer["postal_code(1)"] = nn.Embedding(352899+10, 256)
-        layer["core(1)"] = nn.Sequential(nn.Linear(16+8+8+256, 512), nn.ReLU(), nn.Dropout(0.2))
-        layer["core(2)"] = nn.Sequential(nn.Linear(512, 512), nn.Tanh(), nn.Dropout(0.2))
-        self.layer = nn.ModuleDict(layer)
+        guide = {
+            '1':"p1,p2,p5 => v[1]",
+            '2':"p3 => v[2]",
+            '3':'p4 => v[3]',
+            '4':'p6 => v[4]',
+            '5':'v[1],v[2],v[3] => v[5]',
+            '6':'v[4],v[5] => [v6]'
+        }
+        pass
+
+        layer['1'] = nn.Sequential(nn.Linear(3, 8), nn.Tanh())
+        pass
+        
+        c, e = argument.personality['p3']
+        layer['2'] = nn.Embedding(c, e)
+        pass
+
+        c, e = argument.personality['p4']
+        layer['3'] = nn.Embedding(c, e)
+        pass
+        
+        c, e = argument.personality['p6']
+        layer["4"] = nn.Embedding(c, e)
+        layer["5"] = nn.Sequential(nn.Linear(8+8+8, 256), nn.Tanh())
+        layer["6"] = nn.Sequential(nn.Linear(256+256, 128), nn.Tanh())
+        self.layer = nn.ModuleDict(layer).to(self.device)
+        self.guide = guide
         return
 
     def forward(self, batch='batch'):
         
-        v = [
-            self.layer['FN+Active+age(1)'](torch.cat([batch['FN'], batch['Active'], batch['age']],1)),
-            self.layer["club_member_status(1)"](batch["club_member_status"]).squeeze(0),
-            self.layer["fashion_news_frequency(1)"](batch["fashion_news_frequency"]).squeeze(0),
-            self.layer["postal_code(1)"](batch["postal_code"]).squeeze(0)
-        ]
-        v = torch.cat(v, 1)  ##  (batch, feature)
-        v = self.layer['core(1)'](v)
-        y = self.layer['core(2)'](v) + v
-        return(y)
+        v = [None]
+        pass
 
+        x = torch.cat([batch['p1'], batch['p2'], batch['p5']], 1)
+        v += [self.layer['1'](x)]
+        pass
+
+        v += [self.layer['2'](batch['p3']).squeeze(0)]
+        v += [self.layer['3'](batch['p4']).squeeze(0)]
+        v += [self.layer['4'](batch['p6']).squeeze(0)]
+        pass
+
+        x = torch.cat([v[1],v[2],v[3]], 1)
+        v += [self.layer['5'](x)]
+        pass
+
+        x = torch.cat([v[4], v[5]], 1)
+        v += [self.layer['6'](x)]
+        pass
+
+        y = v[6]
+        return(y)
+    
     pass
 
-class mask:
+class behavior(nn.Module):
+    
+    def __init__(self, device='cpu'):
 
-    def padding(x="(length, batch)", value=0):
+        super(behavior, self).__init__()
+        self.device = device
+        pass
 
-        y = (x==value).transpose(0,1)
-        y = y.cuda() if(x.is_cuda) else y.cpu()
-        return(y)
-
-    def sequence(x="(length, batch)", recourse=False):
-
-        length = len(x)
-        if(not recourse): y = torch.full((length,length), bool(False))
-        if(recourse): y = torch.triu(torch.full((length,length), float('-inf')), diagonal=1)
-        y = y.cuda() if(x.is_cuda) else y.cpu()
-        return(y)
-
-    pass
-
-class position:
-
-    def encode(x='(length, batch)'):
-
-        y = x.clone()
-        for i in range(len(y)): y[i,:] = i
-        return(y)
-
-    pass
-
-
-
-class sequence(nn.Module):
-
-    def __init__(self, ):
-
-        super(sequence, self).__init__()
         layer = dict()
+        guide = {
+            '1-25':"b1-b25 => v[1]-v[25]",
+            '26-27':'r1-r2 => v[26]-v[27]'
+        }
         pass
 
-        key = "article_id_code"
-        layer['{}(1)'.format(key)] = nn.Embedding(105542+10, 512)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(512, 256, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(256, 256, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(256, 256, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(256, 256, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(256, 128, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(256, 128, 1)
-        pass
+        for index, key in enumerate(argument.behavior, 1):
 
-        key = "product_code"
-        layer['{}(1)'.format(key)] = nn.Embedding(47224+10, 512)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(512, 256, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(256, 256, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(256, 256, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(256, 256, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(256, 128, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(256, 128, 1)
-        pass
+            i, h, l = argument.behavior[key]
+            layer[str(index)] = nn.GRU(i, h, l)
+            continue
 
-        key = "prod_name"
-        layer['{}(1)'.format(key)] = nn.Embedding(45875+10, 512)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(512, 256, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(256, 256, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(256, 256, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(256, 256, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(256, 128, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(256, 128, 1)
-        pass
-
-        key = "product_type_no"
-        layer['{}(1)'.format(key)] = nn.Embedding(132+10, 128)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(128, 64, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(64, 64, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(64, 64, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(64, 64, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(64, 32, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(64, 32, 1)
-        pass
-
-        key = "product_type_name"
-        layer['{}(1)'.format(key)] = nn.Embedding(131+10, 128)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(128, 64, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(64, 64, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(64, 64, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(64, 64, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(64, 32, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(64, 32, 1)
-        pass
-
-        key = "product_group_name"
-        layer['{}(1)'.format(key)] = nn.Embedding(19+10, 32)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(32, 16, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(16, 16, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(16, 16, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(16, 16, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(16, 8, 1)
-        pass
-
-        key = "graphical_appearance_no"
-        layer['{}(1)'.format(key)] = nn.Embedding(30+10, 32)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(32, 16, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(16, 16, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(16, 16, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(16, 16, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(16, 8, 1)
-        pass
-
-        key = "graphical_appearance_name"
-        layer['{}(1)'.format(key)] = nn.Embedding(30+10, 32)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(32, 16, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(16, 16, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(16, 16, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(16, 16, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(16, 8, 1)
-        pass
-
-        key = "colour_group_code"
-        layer['{}(1)'.format(key)] = nn.Embedding(50+10, 64)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(64, 32, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(32, 16, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(32, 16, 1)
-        pass
-
-        key = "colour_group_name"
-        layer['{}(1)'.format(key)] = nn.Embedding(50+10, 64)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(64, 32, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(32, 16, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(32, 16, 1)
-        pass
-
-        key = "perceived_colour_value_id"
-        layer['{}(1)'.format(key)] = nn.Embedding(8+10, 16)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(8, 4, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(8, 4, 1)
-        pass
-    
-        key = "perceived_colour_value_name"
-        layer['{}(1)'.format(key)] = nn.Embedding(8+10, 16)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(8, 4, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(8, 4, 1)
-        pass
-    
-        key = "perceived_colour_master_id"
-        layer['{}(1)'.format(key)] = nn.Embedding(20+10, 16)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(8, 4, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(8, 4, 1)
-        pass    
-    
-        key = "perceived_colour_master_name"
-        layer['{}(1)'.format(key)] = nn.Embedding(20+10, 16)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(8, 4, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(8, 4, 1)
-        pass        
-    
-        key = "department_no"
-        layer['{}(1)'.format(key)] = nn.Embedding(299+10, 128)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(128, 64, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(64, 64, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(64, 64, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(64, 64, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(64, 32, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(64, 32, 1)
-        pass        
-    
-        key = "department_name"
-        layer['{}(1)'.format(key)] = nn.Embedding(250+10, 64)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(64, 32, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(32, 16, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(32, 16, 1)
-        pass        
-    
-        key = "index_code"
-        layer['{}(1)'.format(key)] = nn.Embedding(10+10, 16)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(8, 4, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(8, 4, 1)
-        pass        
-    
-        key = "index_name"
-        layer['{}(1)'.format(key)] = nn.Embedding(10+10, 16)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(8, 4, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(8, 4, 1)
-        pass        
-    
-        key = "index_group_no"
-        layer['{}(1)'.format(key)] = nn.Embedding(5+10, 16)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(8, 4, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(8, 4, 1)
-        pass        
-
-        key = "index_group_name"
-        layer['{}(1)'.format(key)] = nn.Embedding(5+10, 16)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(8, 4, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(8, 4, 1)
-        pass        
-
-        key = "section_no"
-        layer['{}(1)'.format(key)] = nn.Embedding(57+10, 64)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(64, 32, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(32, 16, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(32, 16, 1)
-        pass    
-
-        key = "section_name"
-        layer['{}(1)'.format(key)] = nn.Embedding(56+10, 64)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(64, 32, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(32, 32, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(32, 16, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(32, 16, 1)
-        pass    
-
-        key = "garment_group_no"
-        layer['{}(1)'.format(key)] = nn.Embedding(21+10, 16)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(8, 4, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(8, 4, 1)
-        pass    
-
-        key = "garment_group_name"
-        layer['{}(1)'.format(key)] = nn.Embedding(21+10, 16)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(16, 8, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(8, 8, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(8, 4, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(8, 4, 1)
-        pass    
-
-        key = "detail_desc"
-        layer['{}(1)'.format(key)] = nn.Embedding(43405+10, 256)
-        layer['{}(2)'.format(key)] = nn.Sequential(nn.Conv1d(256, 128, 1), nn.ReLU())
-        layer['{}(3)'.format(key)] = nn.Sequential(nn.Conv1d(128, 128, 3, padding=1), nn.ReLU())
-        layer['{}(4)'.format(key)] = nn.Sequential(nn.Conv1d(128, 128, 5, padding=2), nn.ReLU())
-        layer['{}(5)'.format(key)] = nn.Sequential(nn.Conv1d(128, 128, 7, padding=3), nn.ReLU())
-        layer['{}(6)'.format(key)] = nn.Sequential(nn.Conv1d(128, 64, 1), nn.ReLU())
-        layer['{}(7)'.format(key)] = nn.GRU(128, 64, 1)
-        pass    
-
-        self.layer = nn.ModuleDict(layer)
+        self.layer = nn.ModuleDict(layer).to(self.device)
+        self.guide = guide
         return
 
-    def forward(self, batch='batch'):
+    def forward(self, batch):
+        
+        v = [None]
+        for index, key in enumerate(argument.behavior, 1):
 
-        y = dict()
-        pass
+            if(key=='r1'):
 
-        key = "article_id_code"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
+                i, h, l = argument.behavior[key]
+                s = batch['size']
+                status = memory(shape=(l, s, h), device=self.device)
+                o, _ = self.layer[str(index)](batch[key][0], status.reset())
+                v += [o]
+                pass
 
-        key = "product_code"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
+            else:
 
-        key = "prod_name"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "product_type_no"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "product_type_name"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "product_group_name"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "graphical_appearance_no"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "graphical_appearance_name"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "colour_group_code"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "colour_group_name"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "perceived_colour_value_id"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "perceived_colour_value_name"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "perceived_colour_master_id"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "perceived_colour_master_name"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "department_no"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "department_name"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "index_code"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "index_name"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "index_group_no"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "index_group_name"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "section_no"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "section_name"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "garment_group_no"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "garment_group_name"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        key = "detail_desc"
-        v1 = self.layer['{}(1)'.format(key)](batch[key]['history']).permute(1,2,0)
-        v2 = self.layer['{}(2)'.format(key)](v1)
-        v3 = self.layer['{}(3)'.format(key)](v2) + v2
-        v4 = self.layer['{}(4)'.format(key)](v3) + v3
-        v5 = self.layer['{}(5)'.format(key)](v4) + v4
-        v6 = self.layer['{}(6)'.format(key)](v5)
-        v5 = v5.permute(2,0,1)
-        h = v6[:,:,-1:].permute(2,0,1)
-        v7, _ = self.layer['{}(7)'.format(key)](v5, h)
-        y.update({key:v7})
-        pass
-
-        y = torch.cat([y[k] for k in y], 2) ## (length, batch, embedding:688)
+                i, h, l = argument.behavior[key]
+                s = batch['size']
+                label = code(method='hot', device=self.device)
+                status = memory(shape=(l, s, h), device=self.device)
+                o, _ = self.layer[str(index)](label.convert(batch[key][0], i), status.reset())
+                v += [o]
+                pass
+            
+            pass
+        
+        y = torch.cat(v[1:], 2)
         return(y)
     
     pass
 
-class fusion(nn.Module):
-
-    def __init__(self):
-
-        super(fusion, self).__init__()
-        layer = dict()
-        pass
-        
-        key = 'vector'
-        layer['{}'.format(key)] = vector()
-        key = 'sequence'
-        layer['{}'.format(key)] = sequence()
-        key = 'memory'
-        layer['{}(1)'.format(key)] = nn.GRU(688, 512, 1)
-        pass
-
-        self.layer = nn.ModuleDict(layer)    
-        return
+def repeat(tensor, size, axis, device='cpu'):
     
-    def forward(self, batch='batch'):
-
-        key = "vector"
-        vector = self.layer['{}'.format(key)](batch).unsqueeze(0) ##(length:1, batch, embedding:512)
-        pass
-
-        key = 'sequence'
-        sequence = self.layer["{}".format(key)](batch)
-        pass
-
-        key = 'memory'
-        y, _ = self.layer["{}(1)".format(key)](sequence, vector)
-        pass
-
-        return(y)
-
-    pass
-
-class suggestion(nn.Module):
-
-    def __init__(self):
-
-        super(suggestion, self).__init__()
-        layer = dict()
-        pass
-        
-        key = 'fusion'
-        layer["{}".format(key)] = fusion()
-        pass
-        
-        key = "product_code"#'article_id_code'
-        layer["{}(1)".format(key)] = nn.Embedding(47224+10, 512)# nn.Embedding(105542+10, 512)
-        decoder = nn.TransformerDecoderLayer(d_model=512, nhead=8)
-        layer["{}(2)".format(key)] = nn.TransformerDecoder(decoder_layer=decoder, num_layers=2, norm=None)
-        layer["{}(3)".format(key)] = nn.Sequential(nn.Linear(512, 105542+10), nn.ReLU())
-        pass
-
-        self.layer = nn.ModuleDict(layer)
-        return
-
-    def forward(self, batch='batch'):
-
-        memory = self.layer['fusion'](batch)
-        pass
-
-        key = "product_code"#'article_id_code'
-        token = batch[key]['future'][:-1, :]
-        encode = self.layer["{}(2)".format(key)](
-            tgt = self.layer["{}(1)".format(key)](token),
-            memory = memory, 
-            tgt_mask = mask.sequence(token, True),
-            memory_mask = None,
-            tgt_key_padding_mask = mask.padding(token, 0),
-            memory_key_padding_mask = None
-        )
-        likelihood = self.layer["{}(3)".format(key)](encode)
-        pass
-
-        prediction = [v.squeeze(1).argmax(1).tolist() for v in likelihood.split(1,1)]
-        y = (likelihood, prediction)
-        return(y)
-
-    pass
+    tensor = [tensor.unsqueeze(axis) for _ in range(size)]
+    tensor = torch.cat(tensor, axis)
+    tensor = tensor.type(torch.FloatTensor).to(device)
+    return(tensor)
 
 class model(nn.Module):
     
-    def __init__(self):
+    def __init__(self, device='cpu'):
 
         super(model, self).__init__()
-        layer = dict()
-        pass
-        
-        key = 'suggestion'
-        layer["{}".format(key)] = suggestion()
+        self.device = device
         pass
 
-        self.layer = nn.ModuleDict(layer)
+        layer = dict()
+        guide = {
+            "p":"batch => v['p']",
+            "b":"batch => v['b']",
+            'b1-b25':"v['p'],v['b'] => v['b1']-v['b25']",
+            'r1-r2':"v['p'],v['b'] => v['r1']-v['r2']"
+        }
+        pass
+
+        layer['p'] = personality(device=self.device)
+        layer['b'] = behavior(device=self.device)
+        for key in argument.behavior:
+
+            i, _, _ = argument.behavior[key]
+            layer[key] = nn.Sequential(nn.Linear(128+512, i), nn.Tanh())
+            continue
+
+        self.layer = nn.ModuleDict(layer).to(self.device)
+        self.guide = guide
         return
 
-    def forward(self, batch='batch'):
+    def forward(self, batch):
 
-        key = 'suggestion'
-        likelihood, prediction = self.layer['{}'.format(key)](batch)
-        y = (likelihood, prediction)
+        v = dict()
+        v['p'] = self.layer['p'](batch)
+        v['b'] = self.layer['b'](batch)
+        pass
+
+        v['p'] = repeat(tensor=v['p'], size=max(batch['length']), axis=0, device=self.device)
+        x = torch.cat([v['p'], v['b']], 2)
+        pass
+
+        for key in self.layer:
+
+            if(key in ['p', 'b']): continue
+
+            v[key] = self.layer[key](x)
+            pass
+
+        y = v
         return(y)
+    
+    def cost(self, batch):
 
-    pass
+        loss = {}
+        v = self.forward(batch)
+        for k in argument.behavior:
+
+            if(k in ['r1']):
+                
+                criteria = torch.nn.MSELoss()
+                loss[k] = criteria(v[k], batch[k][1])
+                pass
+
+            else:
+
+                criteria = torch.nn.CrossEntropyLoss()
+                s = v[k].flatten(0,1)
+                t = batch[k][1].flatten(0,1)
+                pass
+
+                i = t.nonzero().flatten().tolist()
+                s = s[i,:]
+                t = t[i]
+                pass
+                
+                score = s[:,t].to(self.device)
+                target = torch.arange(len(i)).to(self.device)
+                loss[k] = criteria(score, target)
+                pass
+
+            pass
+
+        loss['total'] = sum([l for _, l in loss.items()])
+        return(loss)
+
+# class metric:
+    
+#     def __init__(self, limit):
+
+#         self.limit = limit
+#         return
+
+#     def compute(self, prediction, target):
+
+#         group = [prediction, target]
+#         score = []
+#         for prediction, target in zip(group[0], group[1]):
+
+#             top = min(self.limit, len(target))
+#             if(top<12): prediction = prediction[:top]
+#             if(top==12): target = target[:top]
+#             match = [1*(str(p)==str(t)) for p, t in zip(prediction, target)]
+#             precision = []
+#             for i, _ in enumerate(match):
+                
+#                 p = sum(match[:i+1]) if(match[i]==1) else 0
+#                 precision += [p/(i+1)]
+#                 pass
+
+#             score += [sum(precision) / top]
+#             pass
+
+#         score = numpy.mean(score)
+#         return(score)
+
+#     pass
