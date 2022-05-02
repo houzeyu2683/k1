@@ -4,81 +4,81 @@ from torch import nn
 from torch.nn import functional
 
 class argument:
-
+    
     personality = {
         'p1':[],
         'p2':[],
         'p3':[4, 8],
-        'p4':[3, 8],
+        'p4':[4, 8],
         'p5':[],
-        'p6':[88829, 256]
+        'p6':[352899, 256]
     }
     behavior = {
-        'b1':[13037+2, 100, 1], 
-        'b2':[13227+2, 100, 1], 
-        'b3':[100+2, 10, 1],
-        'b4':[99+2, 10, 1], 
-        'b5':[15+2, 1, 1], 
-        'b6':[29+2, 3, 1],
-        'b7':[29+2, 3, 1], 
-        'b8':[50+2, 5, 1],
-        'b9':[50+2, 5, 1],
-        'b10':[8+2, 1, 1],
-        'b11':[8+2, 1, 1],
-        'b12':[19+2, 2, 1], 
-        'b13':[19+2, 2, 1],
-        'b14':[275+2, 27, 1], 
-        'b15':[228+2, 22, 1], 
-        'b16':[10+2, 1, 1], 
-        'b17':[10+2, 1, 1],
-        'b18':[5+2, 1, 1], 
-        'b19':[5+2, 1, 1], 
-        'b20':[56+2, 5, 1], 
-        'b21':[56+2, 5, 1],
-        'b22':[21+2, 2, 1], 
-        'b23':[21+2, 2, 1], 
-        'b24':[12149+2, 100, 1],
-        'b25':[24736+2, 100, 1],
-        'r1':[1, 1, 1],
-        'r2':[4, 1, 1], 
+        'b1':[47224+2, 100, 1, 0.1], 
+        'b2':[45875+2, 100, 1, 0.1], 
+        'b3':[132+2, 10, 1, 0.1],
+        'b4':[131+2, 10, 1, 0.1], 
+        'b5':[19+2, 1, 1, 0.1], 
+        'b6':[30+2, 3, 1, 0.1],
+        'b7':[30+2, 3, 1, 0.1], 
+        'b8':[50+2, 5, 1, 0.1],
+        'b9':[50+2, 5, 1, 0.1],
+        'b10':[8+2, 1, 1, 0.1],
+        'b11':[8+2, 1, 1, 0.1],
+        'b12':[20+2, 2, 1, 0.1], 
+        'b13':[20+2, 2, 1, 0.1],
+        'b14':[299+2, 27, 1, 0.1], 
+        'b15':[250+2, 22, 1, 0.1], 
+        'b16':[10+2, 1, 1, 0.1], 
+        'b17':[10+2, 1, 1, 0.1],
+        'b18':[5+2, 1, 1, 0.1], 
+        'b19':[5+2, 1, 1, 0.1], 
+        'b20':[57+2, 5, 1, 0.1], 
+        'b21':[56+2, 5, 1, 0.1],
+        'b22':[21+2, 2, 1, 0.1], 
+        'b23':[21+2, 2, 1, 0.1], 
+        'b24':[43405+2, 100, 1, 0.1],
+        'b25':[105542+2, 100, 1, 0.8],
+        'r1':[1, 1, 1, 0.5],
+        'r2':[2+2, 1, 1, 0.5], 
     }
     pass
 
-class code:
+# class code:
 
-    def __init__(self, method='hot', device='cpu'):
+#     def __init__(self, method='hot', device='cpu'):
 
-        self.method = method
-        self.device = device
-        return
+#         self.method = method
+#         self.device = device
+#         return
 
-    def convert(self, tensor, level):
+#     def convert(self, tensor, level):
 
-        if(self.method=='hot'):
+#         if(self.method=='hot'):
 
-            tensor = functional.one_hot(tensor, level)
-            tensor = tensor.type(torch.FloatTensor).to(self.device)
-            pass
+#             tensor = functional.one_hot(tensor, level)
+#             tensor = tensor.type(torch.FloatTensor).to(self.device)
+#             pass
 
-        return(tensor)
+#         return(tensor)
 
-    pass
+#     pass
 
-class memory:
+# class memory:
 
-    def __init__(self, shape, device='cpu'):
+#     def __init__(self, shape, device='cpu'):
     
-        self.shape = shape
-        self.device = device
-        return
+#         self.shape = shape
+#         self.device = device
+#         return
     
-    def reset(self):
+#     def reset(self):
 
-        tensor = torch.zeros(self.shape)
-        tensor = tensor.type(torch.FloatTensor).to(self.device)
-        return(tensor)
+#         tensor = torch.zeros(self.shape)
+#         tensor = tensor.type(torch.FloatTensor).to(self.device)
+#         return(tensor)
 
-    pass
+#     pass
 
 class personality(nn.Module):
     
@@ -120,30 +120,46 @@ class personality(nn.Module):
 
     def forward(self, batch='batch'):
         
-        v = [None]
+        v = dict()
         pass
 
         x = torch.cat([batch['p1'], batch['p2'], batch['p5']], 1)
-        v += [self.layer['1'](x)]
+        v[1] = self.layer['1'](x)
         pass
 
-        v += [self.layer['2'](batch['p3']).squeeze(0)]
-        v += [self.layer['3'](batch['p4']).squeeze(0)]
-        v += [self.layer['4'](batch['p6']).squeeze(0)]
+        v[2] = self.layer['2'](batch['p3']).squeeze(0)
+        v[3] = self.layer['3'](batch['p4']).squeeze(0)
+        v[4] = self.layer['4'](batch['p6']).squeeze(0)
         pass
 
         x = torch.cat([v[1],v[2],v[3]], 1)
-        v += [self.layer['5'](x)]
+        v[5] = self.layer['5'](x)
         pass
 
         x = torch.cat([v[4], v[5]], 1)
-        v += [self.layer['6'](x)]
+        v[6] = self.layer['6'](x)
         pass
 
         y = v[6]
         return(y)
     
     pass
+
+def encode(tensor, method='one hot', level=None):
+    
+    if(method=='one hot' and level!=None):
+
+        tensor = functional.one_hot(tensor, level)
+        tensor = tensor.type(torch.FloatTensor)
+        pass
+
+    return(tensor)
+
+def reset(shape):
+    
+    tensor = torch.zeros(shape)
+    tensor = tensor.type(torch.FloatTensor)
+    return(tensor)
 
 class behavior(nn.Module):
     
@@ -155,14 +171,14 @@ class behavior(nn.Module):
 
         layer = dict()
         guide = {
-            '1-25':"b1-b25 => v[1]-v[25]",
-            '26-27':'r1-r2 => v[26]-v[27]'
+            "layer['1']-layer['25']":"b1-b25 => v[1]-v[25]",
+            "layer['26'],layer['27']":'r1-r2 => v[26]-v[27]'
         }
         pass
 
         for index, key in enumerate(argument.behavior, 1):
 
-            i, h, l = argument.behavior[key]
+            i, h, l, _ = argument.behavior[key]
             layer[str(index)] = nn.GRU(i, h, l)
             continue
 
@@ -172,40 +188,40 @@ class behavior(nn.Module):
 
     def forward(self, batch):
         
-        v = [None]
+        v = dict()
         for index, key in enumerate(argument.behavior, 1):
 
-            if(key=='r1'):
+            if(key in ['r1']):
 
-                i, h, l = argument.behavior[key]
                 s = batch['size']
-                status = memory(shape=(l, s, h), device=self.device)
-                o, _ = self.layer[str(index)](batch[key][0], status.reset())
-                v += [o]
+                _, h, l, _ = argument.behavior[key]
+                status = reset(shape=(l, s, h)).to(self.device)
+                o, _ = self.layer[str(index)](batch[key][0], status)
+                v[index] = o
                 pass
 
             else:
 
-                i, h, l = argument.behavior[key]
                 s = batch['size']
-                label = code(method='hot', device=self.device)
-                status = memory(shape=(l, s, h), device=self.device)
-                o, _ = self.layer[str(index)](label.convert(batch[key][0], i), status.reset())
-                v += [o]
+                e, h, l, _ = argument.behavior[key]
+                label = encode(tensor=batch[key][0], method='one hot', level=e).to(self.device)
+                status = reset(shape=(l, s, h)).to(self.device)
+                o, _ = self.layer[str(index)](label, status)
+                v[index] = o
                 pass
             
             pass
         
-        y = torch.cat(v[1:], 2)
+        y = torch.cat([x for _, x in v.items()], 2)
         return(y)
     
     pass
 
-def repeat(tensor, size, axis, device='cpu'):
+def repeat(tensor, size, axis):
     
     tensor = [tensor.unsqueeze(axis) for _ in range(size)]
     tensor = torch.cat(tensor, axis)
-    tensor = tensor.type(torch.FloatTensor).to(device)
+    tensor = tensor.type(torch.FloatTensor)
     return(tensor)
 
 class model(nn.Module):
@@ -218,10 +234,10 @@ class model(nn.Module):
 
         layer = dict()
         guide = {
-            "p":"batch => v['p']",
-            "b":"batch => v['b']",
-            'b1-b25':"v['p'],v['b'] => v['b1']-v['b25']",
-            'r1-r2':"v['p'],v['b'] => v['r1']-v['r2']"
+            'layer["p"]':"batch => v['p']",
+            'layer["b"]':"batch => v['b']",
+            'layer["b1"]-layer["b25"]':"v['p'],v['b'] => v['b1']-v['b25']",
+            'layer["r1"],layer["r2"]':"v['p'],v['b'] => v['r1']-v['r2']"
         }
         pass
 
@@ -229,8 +245,8 @@ class model(nn.Module):
         layer['b'] = behavior(device=self.device)
         for key in argument.behavior:
 
-            i, _, _ = argument.behavior[key]
-            layer[key] = nn.Sequential(nn.Linear(128+512, i), nn.Tanh())
+            e, _, _, _ = argument.behavior[key]
+            layer[key] = nn.Sequential(nn.Linear(128+512, e), nn.Tanh())
             continue
 
         self.layer = nn.ModuleDict(layer).to(self.device)
@@ -244,7 +260,8 @@ class model(nn.Module):
         v['b'] = self.layer['b'](batch)
         pass
 
-        v['p'] = repeat(tensor=v['p'], size=max(batch['length']), axis=0, device=self.device)
+        s = max(batch['length'])
+        v['p'] = repeat(tensor=v['p'], size=s, axis=0).to(self.device)
         x = torch.cat([v['p'], v['b']], 2)
         pass
 
@@ -261,36 +278,74 @@ class model(nn.Module):
     def cost(self, batch):
 
         loss = {}
-        v = self.forward(batch)
-        for k in argument.behavior:
+        value = self.forward(batch)
+        for key in argument.behavior:
 
-            if(k in ['r1']):
+            if(key in ['r1']):
                 
-                criteria = torch.nn.MSELoss()
-                loss[k] = criteria(v[k], batch[k][1])
+                _, _, _, weight = argument.behavior[key]
+                digit = sample(value[key], batch[key][1], category=False)
+                loss[key] = weight * criteria(method='mse').compute(digit)
                 pass
 
-            else:
+            if(key in ['b{}'.format(i) for i in range(1, 26)] + ['r2']):
 
-                criteria = torch.nn.CrossEntropyLoss()
-                s = v[k].flatten(0,1)
-                t = batch[k][1].flatten(0,1)
-                pass
-
-                i = t.nonzero().flatten().tolist()
-                s = s[i,:]
-                t = t[i]
-                pass
-                
-                score = s[:,t].to(self.device)
-                target = torch.arange(len(i)).to(self.device)
-                loss[k] = criteria(score, target)
+                _, _, _, weight = argument.behavior[key]
+                digit = sample(value[key], batch[key][1], category=True)
+                loss[key] = weight * criteria(method='top-1 max').compute(digit)
                 pass
 
             pass
 
         loss['total'] = sum([l for _, l in loss.items()])
         return(loss)
+
+def sample(score, target, category=True):
+    
+    if(category):
+
+        s = score.flatten(0,1)
+        t = target.flatten(0,1)
+        i = t.nonzero().flatten()
+        digit = s[i,:][:,t[i]]
+        pass
+
+    else:
+
+        s = score.flatten()
+        t = target.flatten()
+        i = t.nonzero().flatten()
+        digit = s[i], t[i]
+        pass
+
+    return(digit)
+
+class criteria:
+
+    def __init__(self, method=['top-1 max', 'mse']):
+
+        self.method = method
+        return
+
+    def compute(self, digit):
+
+        if(self.method=='top-1 max'):
+
+            likelihood = functional.softmax(digit, dim=1)
+            difference = - (digit.diag().view(-1, 1).expand_as(digit) - digit)
+            loss = torch.mean(likelihood * (torch.sigmoid(difference) + torch.sigmoid(digit ** 2)))
+            pass
+
+        if(self.method=='mse'):
+
+            score, target = digit
+            function = torch.nn.MSELoss()
+            loss = function(score, target)
+            pass
+
+        return(loss)
+
+    pass
 
 # class metric:
     

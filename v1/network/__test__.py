@@ -2,7 +2,7 @@
 import data
 
 table = data.table(source="resource/preprocess/sample/")
-table.load(file="csv/feature(sample).csv")
+table.load(file="csv/feature(train).csv")
 table.file.head(4)
 
 split = data.split(table=table.file, group=None, method='fold', size=10)
@@ -14,10 +14,32 @@ loader = data.loader(batch=2, device='cuda')
 loader.define(train=dataset.train, validation=dataset.validation)
 
 batch = next(iter(loader.train))
+# batch['b25'][0]
+# y = batch['b25'][1]
+# y.flatten(0,1).shape
+# import torch
+# x = torch.randn((8,2,100000))
+# x.flatten(0,1).shape
+
+# y = y.flatten(0,1)
+# x = x.flatten(0,1)
+# x.shape
+# y.shape
+# i = y.nonzero().flatten()
+# s = len(i)
+
+# x[i,:][:,y[i]]
+
+
+    
+#     pass
+
 
 import v1
-
 model = v1.network.model(device='cuda')
+model.cost(batch)
+
+
 machine = v1.network.machine(model=model, device='cuda', folder='log')
 machine.prepare()
 
