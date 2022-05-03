@@ -14,33 +14,33 @@ class argument:
         'p6':[352899, 256]
     }
     behavior = {
-        'b1':[47224+2, 100, 1, 0.1], 
-        'b2':[45875+2, 100, 1, 0.1], 
-        'b3':[132+2, 10, 1, 0.1],
-        'b4':[131+2, 10, 1, 0.1], 
-        'b5':[19+2, 1, 1, 0.1], 
-        'b6':[30+2, 3, 1, 0.1],
-        'b7':[30+2, 3, 1, 0.1], 
-        'b8':[50+2, 5, 1, 0.1],
-        'b9':[50+2, 5, 1, 0.1],
-        'b10':[8+2, 1, 1, 0.1],
-        'b11':[8+2, 1, 1, 0.1],
-        'b12':[20+2, 2, 1, 0.1], 
-        'b13':[20+2, 2, 1, 0.1],
-        'b14':[299+2, 27, 1, 0.1], 
-        'b15':[250+2, 22, 1, 0.1], 
-        'b16':[10+2, 1, 1, 0.1], 
-        'b17':[10+2, 1, 1, 0.1],
-        'b18':[5+2, 1, 1, 0.1], 
-        'b19':[5+2, 1, 1, 0.1], 
-        'b20':[57+2, 5, 1, 0.1], 
-        'b21':[56+2, 5, 1, 0.1],
-        'b22':[21+2, 2, 1, 0.1], 
-        'b23':[21+2, 2, 1, 0.1], 
-        'b24':[43405+2, 100, 1, 0.1],
-        'b25':[105542+2, 100, 1, 0.8],
-        'r1':[1, 1, 1, 0.5],
-        'r2':[2+2, 1, 1, 0.5], 
+        'b1':[47224+2, 100, 1], 
+        'b2':[45875+2, 100, 1], 
+        'b3':[132+2, 10, 1],
+        'b4':[131+2, 10, 1], 
+        'b5':[19+2, 1, 1], 
+        'b6':[30+2, 3, 1],
+        'b7':[30+2, 3, 1], 
+        'b8':[50+2, 5, 1],
+        'b9':[50+2, 5, 1],
+        'b10':[8+2, 1, 1],
+        'b11':[8+2, 1, 1],
+        'b12':[20+2, 2, 1], 
+        'b13':[20+2, 2, 1],
+        'b14':[299+2, 27, 1], 
+        'b15':[250+2, 22, 1], 
+        'b16':[10+2, 1, 1], 
+        'b17':[10+2, 1, 1],
+        'b18':[5+2, 1, 1], 
+        'b19':[5+2, 1, 1], 
+        'b20':[57+2, 5, 1], 
+        'b21':[56+2, 5, 1],
+        'b22':[21+2, 2, 1], 
+        'b23':[21+2, 2, 1], 
+        'b24':[43405+2, 100, 1],
+        'b25':[105542+2, 100, 1],
+        'r1':[1, 1, 1],
+        'r2':[2+2, 1, 1], 
     }
     pass
 
@@ -178,7 +178,7 @@ class behavior(nn.Module):
 
         for index, key in enumerate(argument.behavior, 1):
 
-            i, h, l, _ = argument.behavior[key]
+            i, h, l = argument.behavior[key]
             layer[str(index)] = nn.GRU(i, h, l)
             continue
 
@@ -194,7 +194,7 @@ class behavior(nn.Module):
             if(key in ['r1']):
 
                 s = batch['size']
-                _, h, l, _ = argument.behavior[key]
+                _, h, l = argument.behavior[key]
                 status = reset(shape=(l, s, h)).to(self.device)
                 o, _ = self.layer[str(index)](batch[key][0], status)
                 v[index] = o
@@ -203,7 +203,7 @@ class behavior(nn.Module):
             else:
 
                 s = batch['size']
-                e, h, l, _ = argument.behavior[key]
+                e, h, l = argument.behavior[key]
                 label = encode(tensor=batch[key][0], method='one hot', level=e).to(self.device)
                 status = reset(shape=(l, s, h)).to(self.device)
                 o, _ = self.layer[str(index)](label, status)
@@ -245,7 +245,7 @@ class model(nn.Module):
         layer['b'] = behavior(device=self.device)
         for key in argument.behavior:
 
-            e, _, _, _ = argument.behavior[key]
+            e, _, _ = argument.behavior[key]
             layer[key] = nn.Sequential(nn.Linear(128+512, e), nn.Tanh())
             continue
 
@@ -283,16 +283,16 @@ class model(nn.Module):
 
             if(key in ['r1']):
                 
-                _, _, _, weight = argument.behavior[key]
+                # _, _, _, weight = argument.behavior[key]
                 digit = sample(value[key], batch[key][1], category=False)
-                loss[key] = weight * criteria(method='mse').compute(digit)
+                loss[key] = criteria(method='mse').compute(digit)
                 pass
 
             if(key in ['b{}'.format(i) for i in range(1, 26)] + ['r2']):
 
-                _, _, _, weight = argument.behavior[key]
+                # _, _, _, weight = argument.behavior[key]
                 digit = sample(value[key], batch[key][1], category=True)
-                loss[key] = weight * criteria(method='top-1 max').compute(digit)
+                loss[key] = criteria(method='top-1 max').compute(digit)
                 pass
 
             pass

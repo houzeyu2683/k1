@@ -3,6 +3,7 @@ import data
 
 table = data.table(source="resource/preprocess/sample/")
 table.load(file="csv/feature(train).csv")
+table.file.shape
 table.file.head(4)
 
 split = data.split(table=table.file, group=None, method='fold', size=10)
@@ -10,10 +11,22 @@ split.get(fold=0)
 
 dataset = data.dataset(train=split.train, validation=split.validation, test=None)
 
-loader = data.loader(batch=2, device='cuda')
+loader = data.loader(batch=16, device='cuda')
 loader.define(train=dataset.train, validation=dataset.validation)
 
-batch = next(iter(loader.train))
+import v1
+model = v1.network.model(device='cuda')
+machine = v1.network.machine(model=model, device='cuda', folder='log')
+machine.prepare()
+for epoch in range(20):
+
+    machine.learn(train=loader.train, validation=loader.validation)
+    machine.save(what='history')
+    machine.update(what='checkpoint')
+    pass
+
+
+# batch = next(iter(loader.train))
 # batch['b25'][0]
 # y = batch['b25'][1]
 # y.flatten(0,1).shape
@@ -35,21 +48,7 @@ batch = next(iter(loader.train))
 #     pass
 
 
-import v1
-model = v1.network.model(device='cuda')
-model.cost(batch)
 
-
-machine = v1.network.machine(model=model, device='cuda', folder='log')
-machine.prepare()
-
-for epoch in range(20):
-
-    machine.learn(train=loader.train, validation=loader.validation)
-    machine.save(what='history')
-    machine.save(what='checkpoint')
-    machine.update(what='checkpoint')
-    pass
 
 # y = model.forward(batch)
 # loss = model.cost(batch)
