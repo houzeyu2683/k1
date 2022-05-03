@@ -11,37 +11,66 @@ class argument:
         'p3':[4, 8],
         'p4':[4, 8],
         'p5':[],
-        'p6':[352899, 256]
+        'p6':[352899, 16]
     }
+    # behavior = {
+    #     'b1':[47224+2, 100, 1], 
+    #     'b2':[45875+2, 100, 1], 
+    #     'b3':[132+2, 10, 1],
+    #     'b4':[131+2, 10, 1], 
+    #     'b5':[19+2, 1, 1], 
+    #     'b6':[30+2, 3, 1],
+    #     'b7':[30+2, 3, 1], 
+    #     'b8':[50+2, 5, 1],
+    #     'b9':[50+2, 5, 1],
+    #     'b10':[8+2, 1, 1],
+    #     'b11':[8+2, 1, 1],
+    #     'b12':[20+2, 2, 1], 
+    #     'b13':[20+2, 2, 1],
+    #     'b14':[299+2, 27, 1], 
+    #     'b15':[250+2, 22, 1], 
+    #     'b16':[10+2, 1, 1], 
+    #     'b17':[10+2, 1, 1],
+    #     'b18':[5+2, 1, 1], 
+    #     'b19':[5+2, 1, 1], 
+    #     'b20':[57+2, 5, 1], 
+    #     'b21':[56+2, 5, 1],
+    #     'b22':[21+2, 2, 1], 
+    #     'b23':[21+2, 2, 1], 
+    #     'b24':[43405+2, 100, 1],
+    #     'b25':[105542+2, 100, 1],
+    #     'r1':[1, 1, 1],
+    #     'r2':[2+2, 1, 1], 
+    # }
     behavior = {
-        'b1':[47224+2, 100, 1], 
-        'b2':[45875+2, 100, 1], 
-        'b3':[132+2, 10, 1],
-        'b4':[131+2, 10, 1], 
-        'b5':[19+2, 1, 1], 
-        'b6':[30+2, 3, 1],
-        'b7':[30+2, 3, 1], 
-        'b8':[50+2, 5, 1],
-        'b9':[50+2, 5, 1],
-        'b10':[8+2, 1, 1],
-        'b11':[8+2, 1, 1],
-        'b12':[20+2, 2, 1], 
-        'b13':[20+2, 2, 1],
-        'b14':[299+2, 27, 1], 
-        'b15':[250+2, 22, 1], 
-        'b16':[10+2, 1, 1], 
-        'b17':[10+2, 1, 1],
-        'b18':[5+2, 1, 1], 
-        'b19':[5+2, 1, 1], 
-        'b20':[57+2, 5, 1], 
-        'b21':[56+2, 5, 1],
-        'b22':[21+2, 2, 1], 
-        'b23':[21+2, 2, 1], 
-        'b24':[43405+2, 100, 1],
-        'b25':[105542+2, 100, 1],
+        'b1':[47224+2, 16, 1], 
+        'b2':[45875+2, 16, 1], 
+        'b3':[132+2, 8, 1],
+        'b4':[131+2, 8, 1], 
+        'b5':[19+2, 4, 1], 
+        'b6':[30+2, 4, 1],
+        'b7':[30+2, 4, 1], 
+        'b8':[50+2, 4, 1],
+        'b9':[50+2, 4, 1],
+        'b10':[8+2, 4, 1],
+        'b11':[8+2, 4, 1],
+        'b12':[20+2, 4, 1], 
+        'b13':[20+2, 4, 1],
+        'b14':[299+2, 8, 1], 
+        'b15':[250+2, 8, 1], 
+        'b16':[10+2, 4, 1], 
+        'b17':[10+2, 4, 1],
+        'b18':[5+2, 4, 1], 
+        'b19':[5+2, 4, 1], 
+        'b20':[57+2, 4, 1], 
+        'b21':[56+2, 4, 1],
+        'b22':[21+2, 4, 1], 
+        'b23':[21+2, 4, 1], 
+        'b24':[43405+2, 16, 1],
+        'b25':[105542+2, 64, 1],
         'r1':[1, 1, 1],
-        'r2':[2+2, 1, 1], 
-    }
+        'r2':[2+2, 2, 1], 
+    }    
     pass
 
 # class code:
@@ -112,8 +141,8 @@ class personality(nn.Module):
         
         c, e = argument.personality['p6']
         layer["4"] = nn.Embedding(c, e)
-        layer["5"] = nn.Sequential(nn.Linear(8+8+8, 256), nn.Tanh())
-        layer["6"] = nn.Sequential(nn.Linear(256+256, 128), nn.Tanh())
+        layer["5"] = nn.Sequential(nn.Linear(8+8+8, 64), nn.Tanh())
+        layer["6"] = nn.Sequential(nn.Linear(64+16, 128), nn.Tanh())
         self.layer = nn.ModuleDict(layer).to(self.device)
         self.guide = guide
         return
@@ -178,8 +207,8 @@ class behavior(nn.Module):
 
         for index, key in enumerate(argument.behavior, 1):
 
-            i, h, l = argument.behavior[key]
-            layer[str(index)] = nn.GRU(i, h, l)
+            e, h, l = argument.behavior[key]
+            layer[str(index)] = nn.ModuleList([nn.Embedding(e, h), nn.GRU(h, h, l)])
             continue
 
         self.layer = nn.ModuleDict(layer).to(self.device)
@@ -196,17 +225,18 @@ class behavior(nn.Module):
                 s = batch['size']
                 _, h, l = argument.behavior[key]
                 status = reset(shape=(l, s, h)).to(self.device)
-                o, _ = self.layer[str(index)](batch[key][0], status)
+                o, _ = self.layer[str(index)][1](batch[key][0], status)
                 v[index] = o
                 pass
 
             else:
 
                 s = batch['size']
-                e, h, l = argument.behavior[key]
-                label = encode(tensor=batch[key][0], method='one hot', level=e).to(self.device)
+                _, h, l = argument.behavior[key]
+                # label = encode(tensor=batch[key][0], method='one hot', level=e).to(self.device)
+                label = self.layer[str(index)][0](batch[key][0])
                 status = reset(shape=(l, s, h)).to(self.device)
-                o, _ = self.layer[str(index)](label, status)
+                o, _ = self.layer[str(index)][1](label, status)
                 v[index] = o
                 pass
             
@@ -246,7 +276,7 @@ class model(nn.Module):
         for key in argument.behavior:
 
             e, _, _ = argument.behavior[key]
-            layer[key] = nn.Sequential(nn.Linear(128+512, e), nn.Tanh())
+            layer[key] = nn.Sequential(nn.Linear(343, e), nn.Tanh())
             continue
 
         self.layer = nn.ModuleDict(layer).to(self.device)
