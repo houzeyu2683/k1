@@ -290,7 +290,7 @@ class model(nn.Module):
         v['b'] = self.layer['b'](batch)
         pass
 
-        limit = 32
+        limit = 16
         s = min(max(batch['length']), limit)
         v['p'] = repeat(tensor=v['p'], size=s, axis=0).to(self.device)
         x = torch.cat([v['p'], v['b']], 2)

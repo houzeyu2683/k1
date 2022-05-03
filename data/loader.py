@@ -82,7 +82,7 @@ class process:
                 output[claim] = x.type(style['type'])
                 continue
             
-            limit =32
+            limit = 16
             for claim, style in argument.behavior.items():
 
                 x = [float(i) for i in self.item[claim].split()]
