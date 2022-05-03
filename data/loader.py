@@ -77,17 +77,16 @@ class process:
 
             for claim, style in argument.personality.items():
     
-                # x = self.item[[claim]]
-                # output[claim] = x.astype(style['type']).item()
-
                 x = [float(self.item[claim])]
                 x = torch.tensor([x])
                 output[claim] = x.type(style['type'])
                 continue
-
+            
+            limit =32
             for claim, style in argument.behavior.items():
 
                 x = [float(i) for i in self.item[claim].split()]
+                if(len(x)>limit): x = x[len(x)-limit:]
                 x = [1.0] + x
                 x = torch.cat([torch.tensor([[i]]) for i in x], dim=0)
                 x = x.type(style['type'])
